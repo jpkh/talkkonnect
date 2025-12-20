@@ -9,7 +9,7 @@
 
 [talKKonnect](http://www.talkkonnect.com) is an open source customizable headless, self-contained Mumble Push to Talk (PTT) client designed for linux SBCs such as Raspberry Pi, and Orange Pi Boards. It offers a flexible form factor with an LCD/OLED display, channel and volume control, making it ideal for group communication scenarios. Common use cases include amateur radio enthusiasts, ad-hoc group communications, and replacing expensive commercial intercom systems.
 
-![Infographic](/images/talkkonect-infographic.png)
+![Infographic](/images/talkkonnect-infographic.png)
 
 The Potential Uses of talKKonnect
 * IP Intercom or Door Intercom or Intercom between remote places
@@ -854,6 +854,7 @@ Thank you all for your kind feedback sent along with some pictures and use cases
 [talKKonnect](http://www.talkkonnect.com) is open source and available under the MPL V2.00 license.
 
 <suvir@talkkonnect.com> Updated 27/02/2024 talkkonnect version 2.40.01 is the latest release as of this writing.
+
 
 
 
