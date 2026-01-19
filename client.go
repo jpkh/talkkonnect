@@ -473,17 +473,29 @@ func (b *Talkkonnect) ClientStart() {
 
 	go func() {
 		var RXLEDStatus bool
+		var lastTalkLogAt time.Time
+		var lastTalkLogSpeaker string
+		var lastTalkLogChannel string
 		for {
 			select {
 			case v := <-Talking:
+				if !v.IsTalking {
+					continue
+				}
 				if LastSpeaker != v.WhoTalking {
 					LastSpeaker = v.WhoTalking
 				}
 				if !RXLEDStatus {
-					if b.Client.Self.Channel.Name == v.OnChannel {
-						log.Printf("info: Speaking -> %v\n", v.WhoTalking)
-					} else {
-						log.Printf("info: Listening-> %v \033[31m[%v]\033[0m\n", v.WhoTalking, v.OnChannel)
+					shouldLog := lastTalkLogSpeaker != v.WhoTalking || lastTalkLogChannel != v.OnChannel || time.Since(lastTalkLogAt) > 2*time.Second
+					if shouldLog {
+						if b.Client.Self.Channel.Name == v.OnChannel {
+							log.Printf("info: Speaking -> %v\n", v.WhoTalking)
+						} else {
+							log.Printf("info: Listening-> %v \033[31m[%v]\033[0m\n", v.WhoTalking, v.OnChannel)
+						}
+						lastTalkLogAt = time.Now()
+						lastTalkLogSpeaker = v.WhoTalking
+						lastTalkLogChannel = v.OnChannel
 					}
 					RXLEDStatus = true
 					txlockout := &TXLockOut

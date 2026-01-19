@@ -143,11 +143,48 @@ func (s *Stream) OnAudioStream(e *gumble.AudioStreamEvent) {
 	if _, userexists := StreamTracker[e.User.UserID]; userexists {
 		log.Printf("debug: Stale GoRoutine Detected For UserID=%v UserName=%v Session=%v AudioStreamChannel=%v", e.User.UserID, e.User.Name, e.User.Session, e.C)
 		NeedToKill++
+		return
 	}
 	StreamTracker[e.User.UserID] = streamTrackerStruct{UserID: e.User.UserID, UserName: e.User.Name, UserSession: e.User.Session, C: e.C}
 	goStreamStats()
 
 	go func() {
+		talkingSent := false
+		defer func() {
+			if talkingSent {
+				select {
+				case Talking <- talkingStruct{false, e.User.Name, e.User.Channel.Name}:
+				default:
+				}
+			}
+			delete(StreamTracker, e.User.UserID)
+			if TotalStreams > 0 {
+				TotalStreams--
+			}
+		}()
+
+		if s.contextSink == nil || s.deviceSink == nil {
+			log.Println("error: Audio output device/context not available; draining incoming audio stream")
+			for packet := range e.C {
+				TalkedTicker.Reset(Config.Global.Hardware.VoiceActivityTimermsecs * time.Millisecond)
+				if Config.Global.Software.IgnoreUser.IgnoreUserEnabled {
+					if len(Config.Global.Software.IgnoreUser.IgnoreUserRegex) > 0 {
+						if checkRegex(Config.Global.Software.IgnoreUser.IgnoreUserRegex, e.User.Name) {
+							continue
+						}
+					}
+				}
+				if !talkingSent {
+					select {
+					case Talking <- talkingStruct{true, e.User.Name, e.User.Channel.Name}:
+					default:
+					}
+					talkingSent = true
+				}
+				_ = packet
+			}
+			return
+		}
 		source := openal.NewSource()
 		emptyBufs := openal.NewBuffers(24)
 		reclaim := func() {
@@ -158,6 +195,29 @@ func (s *Stream) OnAudioStream(e *gumble.AudioStreamEvent) {
 			}
 		}
 		var raw [gumble.AudioMaximumFrameSize * 2]byte
+		playPacket := func(samples int, packet *gumble.AudioPacket) (ok bool) {
+			defer func() {
+				if r := recover(); r != nil {
+					ok = false
+				}
+			}()
+			for i, value := range packet.AudioBuffer {
+				binary.LittleEndian.PutUint16(raw[i*2:], uint16(value))
+			}
+			reclaim()
+			if len(emptyBufs) == 0 {
+				return true
+			}
+			last := len(emptyBufs) - 1
+			buffer := emptyBufs[last]
+			emptyBufs = emptyBufs[:last]
+			buffer.SetData(openal.FormatMono16, raw[:samples*2], gumble.AudioSampleRate)
+			source.QueueBuffer(buffer)
+			if source.State() != openal.Playing {
+				source.Play()
+			}
+			return true
+		}
 		for packet := range e.C {
 			TalkedTicker.Reset(Config.Global.Hardware.VoiceActivityTimermsecs * time.Millisecond)
 			if Config.Global.Software.IgnoreUser.IgnoreUserEnabled {
@@ -173,27 +233,39 @@ func (s *Stream) OnAudioStream(e *gumble.AudioStreamEvent) {
 				NowStreaming = IsPlayStream
 				pstream.Stop()
 			}
-			Talking <- talkingStruct{true, e.User.Name, e.User.Channel.Name}
+			if !talkingSent {
+				select {
+				case Talking <- talkingStruct{true, e.User.Name, e.User.Channel.Name}:
+				default:
+				}
+				talkingSent = true
+			}
 			samples := len(packet.AudioBuffer)
 			if samples > cap(raw) {
 				continue
 			}
-			for i, value := range packet.AudioBuffer {
-				binary.LittleEndian.PutUint16(raw[i*2:], uint16(value))
+			if !playPacket(samples, packet) {
+				log.Println("error: Audio playback failed; switching to drain-only mode")
+				for p := range e.C {
+					TalkedTicker.Reset(Config.Global.Hardware.VoiceActivityTimermsecs * time.Millisecond)
+					if Config.Global.Software.IgnoreUser.IgnoreUserEnabled {
+						if len(Config.Global.Software.IgnoreUser.IgnoreUserRegex) > 0 {
+							if checkRegex(Config.Global.Software.IgnoreUser.IgnoreUserRegex, e.User.Name) {
+								continue
+							}
+						}
+					}
+					if !talkingSent {
+						select {
+						case Talking <- talkingStruct{true, e.User.Name, e.User.Channel.Name}:
+						default:
+						}
+						talkingSent = true
+					}
+					_ = p
+				}
+				return
 			}
-			reclaim()
-			if len(emptyBufs) == 0 {
-				continue
-			}
-			last := len(emptyBufs) - 1
-			buffer := emptyBufs[last]
-			emptyBufs = emptyBufs[:last]
-			buffer.SetData(openal.FormatMono16, raw[:samples*2], gumble.AudioSampleRate)
-			source.QueueBuffer(buffer)
-			if source.State() != openal.Playing {
-				source.Play()
-			}
-			Talking <- talkingStruct{false, e.User.Name, e.User.Channel.Name}
 		}
 		reclaim()
 		emptyBufs.Delete()

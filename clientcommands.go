@@ -391,20 +391,20 @@ func (b *Talkkonnect) BackLightTimer() {
 	BackLightTime.Reset(time.Duration(LCDBackLightTimeout) * time.Second)
 }
 
+
 func (b *Talkkonnect) TxLockTimer() {
 	if Config.Global.Hardware.PanicFunction.TxLockEnabled {
-		TxLockTicker := time.NewTicker(time.Duration(Config.Global.Hardware.PanicFunction.TxLockTimeOutSecs) * time.Second)
 		log.Println("info: TX Locked for ", Config.Global.Hardware.PanicFunction.TxLockTimeOutSecs, " seconds")
 		b.TransmitStop(false)
 		b.TransmitStart()
 
-		go func() {
-			<-TxLockTicker.C
+		time.AfterFunc(time.Duration(Config.Global.Hardware.PanicFunction.TxLockTimeOutSecs)*time.Second, func() {
 			b.TransmitStop(true)
 			log.Println("info: TX UnLocked After ", Config.Global.Hardware.PanicFunction.TxLockTimeOutSecs, " seconds")
-		}()
+		})
 	}
 }
+
 
 func (b *Talkkonnect) pingServers() {
 	currentconn := " Not Connected "
@@ -458,32 +458,128 @@ func (b *Talkkonnect) repeatTx() {
 	}
 }
 
+
 func (b *Talkkonnect) cmdSendVoiceTargets(targetID uint32) {
+	// Keep behavior consistent with the rest of the codebase
+	if !(IsConnected) {
+		return
+	}
+
+	// Build ONE voice target with ALL users/channels, then send it ONCE.
+	vtarget := &gumble.VoiceTarget{ID: targetID}
+	added := false
+
+	// For debug printing (VoiceTarget internals are unexported in this fork)
+	var dbgUsers []string
+	type dbgChan struct {
+		name      string
+		recursive bool
+		links     bool
+		group     string
+	}
+	var dbgChans []dbgChan
 
 	GenericCounter = 0
 	for _, account := range Config.Accounts.Account {
-		if account.Default {
+		if !account.Default {
+			continue
+		}
+
+		if GenericCounter == AccountIndex {
 			for _, vtvalue := range account.Voicetargets.ID {
+				if vtvalue.Value != targetID {
+					continue
+				}
 
-				if GenericCounter == AccountIndex {
+				log.Println("info: D Account Index ", GenericCounter, vtvalue)
+				log.Printf("info: D User Requested VT-ID %v\n", vtvalue.Value)
 
-					if vtvalue.Value == targetID {
-						log.Println("debug: Account Index ", GenericCounter, vtvalue)
-						log.Printf("debug: User Requested VT-ID %v\n", vtvalue.Value)
-
-						for _, vtuser := range vtvalue.Users.User {
-							b.VoiceTargetUserSet(vtvalue.Value, vtuser)
-						}
-
-						for _, vtchannel := range vtvalue.Channels.Channel {
-							b.VoiceTargetChannelSet(vtvalue.Value, vtchannel.Name, vtchannel.Recursive, vtchannel.Links, vtchannel.Group)
-						}
+				// --- Users ---
+				for _, vtuser := range vtvalue.Users.User {
+					name := strings.TrimSpace(vtuser)
+					if name == "" {
+						continue
+					}
+					if u := b.Client.Users.Find(name); u != nil {
+						vtarget.AddUser(u)
+						dbgUsers = append(dbgUsers, name)
+						log.Printf("info: D VT add user: %s\n", name)
+						added = true
+					} else {
+						log.Printf("info: W VT user not found on server: %s\n", name)
 					}
 				}
+
+				// --- Channels ---
+				for _, vtchannel := range vtvalue.Channels.Channel {
+					chName := strings.TrimSpace(vtchannel.Name)
+					if chName == "" {
+						continue
+					}
+
+					// Support either comma-separated path (as used elsewhere) or simple name
+					var ch *gumble.Channel
+					if strings.Contains(chName, ",") {
+						ch = b.Client.Channels.Find(strings.Split(chName, ",")...)
+					} else {
+						ch = b.Client.Channels.Find(chName)
+					}
+
+					if ch != nil {
+						// Your fork’s signature: AddChannel(channel, recursive, links, group)
+						vtarget.AddChannel(ch, vtchannel.Recursive, vtchannel.Links, vtchannel.Group)
+						dbgChans = append(dbgChans, dbgChan{
+							name: chName, recursive: vtchannel.Recursive, links: vtchannel.Links, group: vtchannel.Group,
+						})
+						log.Printf("info: D VT add channel: %s (rec=%v, links=%v, group=%s)\n",
+							chName, vtchannel.Recursive, vtchannel.Links, vtchannel.Group)
+						added = true
+					} else {
+						log.Printf("info: W VT channel not found: %s\n", chName)
+					}
+				}
+
+				// We matched and processed this VT id; stop scanning
+				break
 			}
-			GenericCounter++
 		}
+
+		GenericCounter++
 	}
+
+	if !added {
+		log.Printf("info: W cmdSendVoiceTargets(%d): nothing to send\n", targetID)
+		// Maintain your existing indicator semantics when clearing
+		if targetID == 0 {
+			GPIOOutPin("voicetarget", "off")
+			b.sevenSegment("voicetarget", "0")
+		}
+		return
+	}
+
+	// --- Debug dump of the voice target we are about to send (no unexported fields) ---
+	if len(dbgUsers) > 0 || len(dbgChans) > 0 {
+		log.Printf("info: W VoiceTarget %d dump:", targetID)
+		for _, n := range dbgUsers {
+			log.Printf("info: D  user: %s", n)
+		}
+		for _, dc := range dbgChans {
+			log.Printf("info: D  channel: %s (rec=%v links=%v group=%s)", dc.name, dc.recursive, dc.links, dc.group)
+		}
+	} else {
+		log.Printf("info: D VoiceTarget %d has no users/channels defined", targetID)
+	}
+
+	// Define and select the voice target using your fork's API.
+	b.Client.VoiceTarget = vtarget
+	b.Client.Send(vtarget)
+
+	if targetID > 0 {
+		GPIOOutPin("voicetarget", "on")
+	}
+	b.sevenSegment("voicetarget", strconv.Itoa(int(targetID)))
+
+	log.Printf("info: VoiceTarget %d defined and selected (batched)\n", targetID)
 }
 
 func (b *Talkkonnect) VoiceTargetUserSet(TargetID uint32, TargetUser string) {
