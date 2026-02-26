@@ -45,6 +45,8 @@ func (b *Talkkonnect) httpAPI(w http.ResponseWriter, r *http.Request) {
 		"displaymenu":        b.cmdDisplayMenu,
 		"channelup":          b.cmdChannelUp,
 		"channeldown":        b.cmdChannelDown,
+		"setchannelpat9":     b.ChangeChannel,
+		"setchannelaudio":    b.ChangeChannel,
 		"mute-toggle":        b.cmdMuteUnmute,
 		"mute":               b.cmdMuteUnmute,
 		"unmute":             b.cmdMuteUnmute,

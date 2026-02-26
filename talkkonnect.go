@@ -41,7 +41,7 @@ import (
 	"github.com/talkkonnect/volume-go"
 )
 
-const jpBuildVersionDefault = "v1.0.5"
+const jpBuildVersionDefault = "v1.0.6"
 
 func bannerFrameLine(text string) string {
 	const lineWidth = 64
