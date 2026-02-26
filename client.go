@@ -573,6 +573,9 @@ func (b *Talkkonnect) ClientStart() {
 	}
 
 	b.ListChannels(true)
+	log.Printf("info: Listen config -> onstart=%v channels=%v\n",
+		Config.Global.Software.Settings.ListenToChannelsOnStart,
+		Config.Accounts.Account[AccountIndex].Listentochannels.ChannelNames)
 
 	// Set VT index to Zero
 	Config.Accounts.Account[AccountIndex].Voicetargets.ID[0].IsCurrent = true

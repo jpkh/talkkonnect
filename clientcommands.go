@@ -682,6 +682,23 @@ func (b *Talkkonnect) listeningToChannels(command string) {
 		return
 	}
 
+	channelPath := func(ch *gumble.Channel) string {
+		if ch == nil {
+			return ""
+		}
+		parts := []string{}
+		for c := ch; c != nil; c = c.Parent {
+			name := strings.TrimSpace(c.Name)
+			if name != "" {
+				parts = append([]string{name}, parts...)
+			}
+		}
+		if len(parts) == 0 {
+			return "<root>"
+		}
+		return strings.Join(parts, "/")
+	}
+
 	ListeningChannelNames := []string{}
 	ListeningChannelIDs := []uint32{}
 
@@ -725,6 +742,7 @@ func (b *Talkkonnect) listeningToChannels(command string) {
 		if channel != nil {
 			ListeningChannelNames = append(ListeningChannelNames, channel.Name)
 			ListeningChannelIDs = append(ListeningChannelIDs, channel.ID)
+			log.Printf("info: Listening resolve -> requested=%q resolved=%q id=%d users=%d\n", name, channelPath(channel), channel.ID, len(channel.Users))
 		} else {
 			log.Printf("warn: Listening channel not found: %q\n", name)
 		}

@@ -53,6 +53,7 @@ func bannerFrameLine(text string) string {
 
 func jpBuildVersion() string {
 	paths := []string{
+		"TK-BuildVersion.local.txt",
 		"Project/Hypcom/Configs/TK-BuildVersion.txt",
 		"../jdcustomer/Projects/Hypcom/Configs/TK-BuildVersion.txt",
 		"TK-BuildVersion.txt",
