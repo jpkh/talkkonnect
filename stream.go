@@ -170,7 +170,7 @@ func (s *Stream) OnAudioStream(e *gumble.AudioStreamEvent) {
 				if e.User != nil && e.User.Channel != nil && isActiveListeningChannel(e.User.Channel.ID) {
 					markListeningAudioObserved()
 					if !listeningRxLogged {
-						log.Printf("info: Listening RX observed (drain-only mode) -> user=%q channel=%q id=%d\n", e.User.Name, e.User.Channel.Name, e.User.Channel.ID)
+						log.Printf("debug: Listening RX observed (drain-only mode) -> user=%q channel=%q id=%d\n", e.User.Name, e.User.Channel.Name, e.User.Channel.ID)
 						listeningRxLogged = true
 					}
 				}
@@ -230,7 +230,7 @@ func (s *Stream) OnAudioStream(e *gumble.AudioStreamEvent) {
 			if e.User != nil && e.User.Channel != nil && isActiveListeningChannel(e.User.Channel.ID) {
 				markListeningAudioObserved()
 				if !listeningRxLogged {
-					log.Printf("info: Listening RX observed -> user=%q channel=%q id=%d\n", e.User.Name, e.User.Channel.Name, e.User.Channel.ID)
+					log.Printf("debug: Listening RX observed -> user=%q channel=%q id=%d\n", e.User.Name, e.User.Channel.Name, e.User.Channel.ID)
 					listeningRxLogged = true
 				}
 			}
@@ -265,7 +265,7 @@ func (s *Stream) OnAudioStream(e *gumble.AudioStreamEvent) {
 					if e.User != nil && e.User.Channel != nil && isActiveListeningChannel(e.User.Channel.ID) {
 						markListeningAudioObserved()
 						if !listeningRxLogged {
-							log.Printf("info: Listening RX observed (fallback drain) -> user=%q channel=%q id=%d\n", e.User.Name, e.User.Channel.Name, e.User.Channel.ID)
+							log.Printf("debug: Listening RX observed (fallback drain) -> user=%q channel=%q id=%d\n", e.User.Name, e.User.Channel.Name, e.User.Channel.ID)
 							listeningRxLogged = true
 						}
 					}

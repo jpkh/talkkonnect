@@ -750,10 +750,30 @@ func (b *Talkkonnect) listeningToChannels(command string) {
 		perm := ch.Permission()
 		if perm == nil {
 			log.Printf("warn: %s permission snapshot unavailable yet for %q (id=%d)\n", label, channelPath(ch), ch.ID)
+			go func(label string, channelID uint32) {
+				time.Sleep(1200 * time.Millisecond)
+				if b.Client == nil {
+					return
+				}
+				b.Client.Do(func() {
+					channel := b.Client.Channels[channelID]
+					if channel == nil {
+						return
+					}
+					channel.RequestPermission()
+					perm2 := channel.Permission()
+					if perm2 == nil {
+						log.Printf("warn: %s permission snapshot retry unavailable for %q (id=%d)\n", label, channelPath(channel), channel.ID)
+						return
+					}
+					enter := (*perm2 & gumble.PermissionEnter) != 0
+					log.Printf("debug: %s permission snapshot retry -> channel=%q id=%d raw=%#x enter=%v\n", label, channelPath(channel), channel.ID, uint32(*perm2), enter)
+				})
+			}(label, ch.ID)
 			return
 		}
 		enter := (*perm & gumble.PermissionEnter) != 0
-		log.Printf("info: %s permission snapshot -> channel=%q id=%d raw=%#x enter=%v\n", label, channelPath(ch), ch.ID, uint32(*perm), enter)
+		log.Printf("debug: %s permission snapshot -> channel=%q id=%d raw=%#x enter=%v\n", label, channelPath(ch), ch.ID, uint32(*perm), enter)
 	}
 
 	if b.Client != nil && b.Client.Self != nil && b.Client.Self.Channel != nil {
@@ -810,7 +830,7 @@ func (b *Talkkonnect) listeningToChannels(command string) {
 					userNames = append(userNames, user.Name)
 				}
 			}
-			log.Printf("info: Listening resolve -> requested=%q resolved=%q id=%d users=%d names=%v\n", name, channelPath(channel), channel.ID, len(channel.Users), userNames)
+			log.Printf("debug: Listening resolve -> requested=%q resolved=%q id=%d users=%d names=%v\n", name, channelPath(channel), channel.ID, len(channel.Users), userNames)
 		} else {
 			log.Printf("warn: Listening channel not found: %q\n", name)
 		}

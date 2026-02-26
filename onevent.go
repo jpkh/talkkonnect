@@ -401,10 +401,17 @@ func (b *Talkkonnect) OnUserChange(e *gumble.UserChangeEvent) {
 }
 
 func (b *Talkkonnect) OnPermissionDenied(e *gumble.PermissionDeniedEvent) {
+	channelID := uint32(0)
+	channelName := ""
+	if e.Channel != nil {
+		channelID = e.Channel.ID
+		channelName = e.Channel.Name
+	}
+	log.Printf("warn: PermissionDenied detail -> type=%v channel_id=%d channel_name=%q permission_raw=%#x reason=%q\n", e.Type, channelID, channelName, uint32(e.Permission), e.String)
 
 	switch e.Type {
 	case gumble.PermissionDeniedPermission:
-		log.Printf("warn: Permission Denied For Channel ID %v Channel Name %v\n", e.Channel.ID, e.Channel.Name)
+		log.Printf("warn: Permission Denied For Channel ID %v Channel Name %v\n", channelID, channelName)
 	case gumble.PermissionDeniedSuperUser:
 		log.Println("cannot modify SuperUser")
 	case gumble.PermissionDeniedInvalidChannelName:
