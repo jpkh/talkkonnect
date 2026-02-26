@@ -742,6 +742,24 @@ func (b *Talkkonnect) listeningToChannels(command string) {
 		return strings.Join(parts, "/")
 	}
 
+	logChannelPermission := func(label string, ch *gumble.Channel) {
+		if ch == nil {
+			return
+		}
+		ch.RequestPermission()
+		perm := ch.Permission()
+		if perm == nil {
+			log.Printf("warn: %s permission snapshot unavailable yet for %q (id=%d)\n", label, channelPath(ch), ch.ID)
+			return
+		}
+		enter := (*perm & gumble.PermissionEnter) != 0
+		log.Printf("info: %s permission snapshot -> channel=%q id=%d raw=%#x enter=%v\n", label, channelPath(ch), ch.ID, uint32(*perm), enter)
+	}
+
+	if b.Client != nil && b.Client.Self != nil && b.Client.Self.Channel != nil {
+		logChannelPermission("Self", b.Client.Self.Channel)
+	}
+
 	ListeningChannelNames := []string{}
 	ListeningChannelIDs := []uint32{}
 
@@ -785,6 +803,7 @@ func (b *Talkkonnect) listeningToChannels(command string) {
 		if channel != nil {
 			ListeningChannelNames = append(ListeningChannelNames, channel.Name)
 			ListeningChannelIDs = append(ListeningChannelIDs, channel.ID)
+			logChannelPermission("ListenTarget", channel)
 			userNames := []string{}
 			for _, user := range channel.Users {
 				if user != nil {
@@ -827,7 +846,7 @@ func (b *Talkkonnect) cmdListeningStart() {
 		time.Sleep(8 * time.Second)
 		last := lastListeningAudioObservedAt()
 		if last.Before(startedAt) {
-			log.Printf("warn: Listening START watchdog -> no RX audio observed within 8s (started=%s). Check Murmur ACL/server support for listening channels.\n", startedAt.Format(time.RFC3339))
+			log.Printf("warn: Listening START watchdog -> no RX audio observed within 8s (started=%s). Check Murmur ACL; if permission snapshots look OK, server likely does not apply ListeningChannelAdd (common on stock/older Murmur).\n", startedAt.Format(time.RFC3339))
 		}
 	}(start)
 }
