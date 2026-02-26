@@ -678,6 +678,7 @@ func (b *Talkkonnect) findChannelDetailsByID(ChannelID uint32, index int) {
 
 func (b *Talkkonnect) listeningToChannels(command string) {
 	if !(IsConnected) {
+		log.Println("warn: listeningToChannels ignored: not connected")
 		return
 	}
 
@@ -729,28 +730,36 @@ func (b *Talkkonnect) listeningToChannels(command string) {
 		}
 	}
 
+	if len(ListeningChannelIDs) == 0 {
+		log.Println("warn: No valid listening channels resolved from config")
+	}
+
 	if command == "start" {
-		log.Printf("debug: Adding Channels %v With IDs %v For Listening\n", ListeningChannelNames, ListeningChannelIDs)
+		log.Printf("info: Listening START -> channels=%v ids=%v\n", ListeningChannelNames, ListeningChannelIDs)
 		b.AddListeningChannelID(ListeningChannelIDs)
 		return
 	}
 
 	if command == "stop" {
-		log.Printf("debug: Removing Channels %v With IDs %v For Listening\n", ListeningChannelNames, ListeningChannelIDs)
+		log.Printf("info: Listening STOP -> channels=%v ids=%v\n", ListeningChannelNames, ListeningChannelIDs)
 		b.RemoveListeningChannelID(ListeningChannelIDs)
 	}
 }
 
 func (b *Talkkonnect) cmdListeningStart() {
 	if !(IsConnected) {
+		log.Println("warn: cmdListeningStart ignored: not connected")
 		return
 	}
+	log.Println("info: cmdListeningStart requested")
 	b.listeningToChannels("start")
 }
 
 func (b *Talkkonnect) cmdListeningStop() {
 	if !(IsConnected) {
+		log.Println("warn: cmdListeningStop ignored: not connected")
 		return
 	}
+	log.Println("info: cmdListeningStop requested")
 	b.listeningToChannels("stop")
 }

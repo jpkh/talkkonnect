@@ -30,11 +30,45 @@
 package talkkonnect
 
 import (
+	"fmt"
 	"log"
+	"os"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/talkkonnect/volume-go"
 )
+
+const jpBuildVersionDefault = "v1.0.1"
+
+func bannerFrameLine(text string) string {
+	const lineWidth = 64
+	r := []rune(text)
+	if len(r) > lineWidth {
+		r = r[:lineWidth]
+	}
+	return "│" + fmt.Sprintf("%-64s", string(r)) + "│"
+}
+
+func jpBuildVersion() string {
+	paths := []string{
+		"Project/Hypcom/Configs/TK-BuildVersion.txt",
+		"../jdcustomer/Projects/Hypcom/Configs/TK-BuildVersion.txt",
+		"TK-BuildVersion.txt",
+	}
+	for _, p := range paths {
+		b, err := os.ReadFile(p)
+		if err != nil {
+			continue
+		}
+		v := strings.TrimSpace(string(b))
+		if v != "" {
+			return v
+		}
+	}
+	return jpBuildVersionDefault
+}
 
 func talkkonnectBanner(backgroundcolor string) {
 	var backgroundreset string = "\u001b[0m"
@@ -48,6 +82,9 @@ func talkkonnectBanner(backgroundcolor string) {
 	log.Println("info: " + backgroundcolor + "│A Flexible Headless Mumble Transceiver/Gateway for RPi/PC/VM    │" + backgroundreset)
 	log.Println("info: " + backgroundcolor + "├────────────────────────────────────────────────────────────────┤" + backgroundreset)
 	log.Println("info: " + backgroundcolor + "│Created By : Suvir Kumar  <suvir@talkkonnect.com>               │" + backgroundreset)
+	log.Println("info: " + backgroundcolor + bannerFrameLine("Extra Fetures by: Jani Hirivnen <jani@jdronics.fi>") + backgroundreset)
+	buildStamp := time.Now().Format("2006-01-02 15:04:05")
+	log.Println("info: " + backgroundcolor + bannerFrameLine("Build version: "+buildStamp+" "+jpBuildVersion()+" -jp") + backgroundreset)
 	log.Println("info: " + backgroundcolor + "├────────────────────────────────────────────────────────────────┤" + backgroundreset)
 	log.Println("info: " + backgroundcolor + "│Press the <Del> key for Menu or <Ctrl-c> to Quit talkkonnect    │" + backgroundreset)
 	log.Println("info: " + backgroundcolor + "│Additional Modifications Released under MPL 2.0 License         │" + backgroundreset)
