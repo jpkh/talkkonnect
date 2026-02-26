@@ -685,10 +685,47 @@ func (b *Talkkonnect) listeningToChannels(command string) {
 	ListeningChannelIDs := []uint32{}
 
 	for _, ChannelNames := range Config.Accounts.Account[AccountIndex].Listentochannels.ChannelNames {
-		channel := b.Client.Channels.Find(ChannelNames)
+		name := strings.TrimSpace(ChannelNames)
+		if name == "" {
+			continue
+		}
+
+		var channel *gumble.Channel
+		if strings.Contains(name, ",") {
+			parts := []string{}
+			for _, p := range strings.Split(name, ",") {
+				p = strings.TrimSpace(p)
+				if p != "" {
+					parts = append(parts, p)
+				}
+			}
+			if len(parts) > 0 {
+				channel = b.Client.Channels.Find(parts...)
+			}
+		}
+
+		if channel == nil && strings.Contains(name, "/") {
+			parts := []string{}
+			for _, p := range strings.Split(name, "/") {
+				p = strings.TrimSpace(p)
+				if p != "" {
+					parts = append(parts, p)
+				}
+			}
+			if len(parts) > 0 {
+				channel = b.Client.Channels.Find(parts...)
+			}
+		}
+
+		if channel == nil {
+			channel = b.Client.Channels.Find(name)
+		}
+
 		if channel != nil {
 			ListeningChannelNames = append(ListeningChannelNames, channel.Name)
 			ListeningChannelIDs = append(ListeningChannelIDs, channel.ID)
+		} else {
+			log.Printf("warn: Listening channel not found: %q\n", name)
 		}
 	}
 
