@@ -33,6 +33,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -40,7 +41,7 @@ import (
 	"github.com/talkkonnect/volume-go"
 )
 
-const jpBuildVersionDefault = "v1.0.1"
+const jpBuildVersionDefault = "v1.0.5"
 
 func bannerFrameLine(text string) string {
 	const lineWidth = 64
@@ -52,12 +53,19 @@ func bannerFrameLine(text string) string {
 }
 
 func jpBuildVersion() string {
-	paths := []string{
+	paths := []string{}
+
+	if exePath, err := os.Executable(); err == nil {
+		exeDir := filepath.Dir(exePath)
+		paths = append(paths, filepath.Join(exeDir, "TK-BuildVersion.local.txt"))
+	}
+
+	paths = append(paths,
 		"TK-BuildVersion.local.txt",
 		"Project/Hypcom/Configs/TK-BuildVersion.txt",
 		"../jdcustomer/Projects/Hypcom/Configs/TK-BuildVersion.txt",
 		"TK-BuildVersion.txt",
-	}
+	)
 	for _, p := range paths {
 		b, err := os.ReadFile(p)
 		if err != nil {

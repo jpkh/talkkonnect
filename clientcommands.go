@@ -36,6 +36,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -48,7 +50,44 @@ import (
 var (
 	prevChannelID uint32
 	maxchannelid  uint32
+
+	listeningStateMu          sync.RWMutex
+	activeListeningChannelIDs = map[uint32]struct{}{}
+	lastListeningAudioUnixNs  int64
 )
+
+func setActiveListeningChannels(channelIDs []uint32) {
+	listeningStateMu.Lock()
+	defer listeningStateMu.Unlock()
+
+	activeListeningChannelIDs = map[uint32]struct{}{}
+	for _, id := range channelIDs {
+		activeListeningChannelIDs[id] = struct{}{}
+	}
+}
+
+func clearActiveListeningChannels() {
+	setActiveListeningChannels(nil)
+}
+
+func isActiveListeningChannel(channelID uint32) bool {
+	listeningStateMu.RLock()
+	defer listeningStateMu.RUnlock()
+	_, ok := activeListeningChannelIDs[channelID]
+	return ok
+}
+
+func markListeningAudioObserved() {
+	atomic.StoreInt64(&lastListeningAudioUnixNs, time.Now().UnixNano())
+}
+
+func lastListeningAudioObservedAt() time.Time {
+	ts := atomic.LoadInt64(&lastListeningAudioUnixNs)
+	if ts <= 0 {
+		return time.Time{}
+	}
+	return time.Unix(0, ts)
+}
 
 func FatalCleanUp(message string) {
 	log.Println("alert: " + message)
@@ -342,14 +381,18 @@ func (b *Talkkonnect) SendMessage(textmessage string, PRecursive bool) {
 }
 
 func (b *Talkkonnect) AddListeningChannelID(channelid []uint32) {
-	if IsConnected {
-		b.Client.Self.AddListeningChannel(channelid)
+	if IsConnected && b.Client != nil {
+		b.Client.Do(func() {
+			b.Client.Self.AddListeningChannel(channelid)
+		})
 	}
 }
 
 func (b *Talkkonnect) RemoveListeningChannelID(channelid []uint32) {
-	if IsConnected {
-		b.Client.Self.RemoveListeningChannel(channelid)
+	if IsConnected && b.Client != nil {
+		b.Client.Do(func() {
+			b.Client.Self.RemoveListeningChannel(channelid)
+		})
 	}
 }
 
@@ -742,7 +785,13 @@ func (b *Talkkonnect) listeningToChannels(command string) {
 		if channel != nil {
 			ListeningChannelNames = append(ListeningChannelNames, channel.Name)
 			ListeningChannelIDs = append(ListeningChannelIDs, channel.ID)
-			log.Printf("info: Listening resolve -> requested=%q resolved=%q id=%d users=%d\n", name, channelPath(channel), channel.ID, len(channel.Users))
+			userNames := []string{}
+			for _, user := range channel.Users {
+				if user != nil {
+					userNames = append(userNames, user.Name)
+				}
+			}
+			log.Printf("info: Listening resolve -> requested=%q resolved=%q id=%d users=%d names=%v\n", name, channelPath(channel), channel.ID, len(channel.Users), userNames)
 		} else {
 			log.Printf("warn: Listening channel not found: %q\n", name)
 		}
@@ -753,12 +802,14 @@ func (b *Talkkonnect) listeningToChannels(command string) {
 	}
 
 	if command == "start" {
+		setActiveListeningChannels(ListeningChannelIDs)
 		log.Printf("info: Listening START -> channels=%v ids=%v\n", ListeningChannelNames, ListeningChannelIDs)
 		b.AddListeningChannelID(ListeningChannelIDs)
 		return
 	}
 
 	if command == "stop" {
+		clearActiveListeningChannels()
 		log.Printf("info: Listening STOP -> channels=%v ids=%v\n", ListeningChannelNames, ListeningChannelIDs)
 		b.RemoveListeningChannelID(ListeningChannelIDs)
 	}
@@ -770,7 +821,15 @@ func (b *Talkkonnect) cmdListeningStart() {
 		return
 	}
 	log.Println("info: cmdListeningStart requested")
+	start := time.Now()
 	b.listeningToChannels("start")
+	go func(startedAt time.Time) {
+		time.Sleep(8 * time.Second)
+		last := lastListeningAudioObservedAt()
+		if last.Before(startedAt) {
+			log.Printf("warn: Listening START watchdog -> no RX audio observed within 8s (started=%s). Check Murmur ACL/server support for listening channels.\n", startedAt.Format(time.RFC3339))
+		}
+	}(start)
 }
 
 func (b *Talkkonnect) cmdListeningStop() {

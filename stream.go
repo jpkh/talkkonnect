@@ -150,6 +150,7 @@ func (s *Stream) OnAudioStream(e *gumble.AudioStreamEvent) {
 
 	go func() {
 		talkingSent := false
+		listeningRxLogged := false
 		defer func() {
 			if talkingSent {
 				select {
@@ -166,6 +167,13 @@ func (s *Stream) OnAudioStream(e *gumble.AudioStreamEvent) {
 		if s.contextSink == nil || s.deviceSink == nil {
 			log.Println("error: Audio output device/context not available; draining incoming audio stream")
 			for packet := range e.C {
+				if e.User != nil && e.User.Channel != nil && isActiveListeningChannel(e.User.Channel.ID) {
+					markListeningAudioObserved()
+					if !listeningRxLogged {
+						log.Printf("info: Listening RX observed (drain-only mode) -> user=%q channel=%q id=%d\n", e.User.Name, e.User.Channel.Name, e.User.Channel.ID)
+						listeningRxLogged = true
+					}
+				}
 				TalkedTicker.Reset(Config.Global.Hardware.VoiceActivityTimermsecs * time.Millisecond)
 				if Config.Global.Software.IgnoreUser.IgnoreUserEnabled {
 					if len(Config.Global.Software.IgnoreUser.IgnoreUserRegex) > 0 {
@@ -219,6 +227,13 @@ func (s *Stream) OnAudioStream(e *gumble.AudioStreamEvent) {
 			return true
 		}
 		for packet := range e.C {
+			if e.User != nil && e.User.Channel != nil && isActiveListeningChannel(e.User.Channel.ID) {
+				markListeningAudioObserved()
+				if !listeningRxLogged {
+					log.Printf("info: Listening RX observed -> user=%q channel=%q id=%d\n", e.User.Name, e.User.Channel.Name, e.User.Channel.ID)
+					listeningRxLogged = true
+				}
+			}
 			TalkedTicker.Reset(Config.Global.Hardware.VoiceActivityTimermsecs * time.Millisecond)
 			if Config.Global.Software.IgnoreUser.IgnoreUserEnabled {
 				if len(Config.Global.Software.IgnoreUser.IgnoreUserRegex) > 0 {
@@ -247,6 +262,13 @@ func (s *Stream) OnAudioStream(e *gumble.AudioStreamEvent) {
 			if !playPacket(samples, packet) {
 				log.Println("error: Audio playback failed; switching to drain-only mode")
 				for p := range e.C {
+					if e.User != nil && e.User.Channel != nil && isActiveListeningChannel(e.User.Channel.ID) {
+						markListeningAudioObserved()
+						if !listeningRxLogged {
+							log.Printf("info: Listening RX observed (fallback drain) -> user=%q channel=%q id=%d\n", e.User.Name, e.User.Channel.Name, e.User.Channel.ID)
+							listeningRxLogged = true
+						}
+					}
 					TalkedTicker.Reset(Config.Global.Hardware.VoiceActivityTimermsecs * time.Millisecond)
 					if Config.Global.Software.IgnoreUser.IgnoreUserEnabled {
 						if len(Config.Global.Software.IgnoreUser.IgnoreUserRegex) > 0 {
