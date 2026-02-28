@@ -562,15 +562,42 @@ func (b *Talkkonnect) cmdSendVoiceTargets(targetID uint32) {
 					}
 				}
 
-				// --- Channels ---
-				vtChannels := append([]struct {
-					Name      string
-					Recursive bool
-					Links     bool
-					Group     string
-				}{}, vtvalue.Channels.Channel...)
-				vtChannels = append(vtChannels, vtvalue.Channel...)
-				for _, vtchannel := range vtChannels {
+				// --- Channels (nested <channels><channel>...) ---
+				for _, vtchannel := range vtvalue.Channels.Channel {
+					chName := strings.TrimSpace(vtchannel.Name)
+					if chName == "" {
+						continue
+					}
+					channelKey := fmt.Sprintf("%s|%t|%t|%s", chName, vtchannel.Recursive, vtchannel.Links, vtchannel.Group)
+					if seenChannels[channelKey] {
+						continue
+					}
+
+					// Support either comma-separated path (as used elsewhere) or simple name
+					var ch *gumble.Channel
+					if strings.Contains(chName, ",") {
+						ch = b.Client.Channels.Find(strings.Split(chName, ",")...)
+					} else {
+						ch = b.Client.Channels.Find(chName)
+					}
+
+					if ch != nil {
+						// Your fork’s signature: AddChannel(channel, recursive, links, group)
+						vtarget.AddChannel(ch, vtchannel.Recursive, vtchannel.Links, vtchannel.Group)
+						seenChannels[channelKey] = true
+						dbgChans = append(dbgChans, dbgChan{
+							name: chName, recursive: vtchannel.Recursive, links: vtchannel.Links, group: vtchannel.Group,
+						})
+						log.Printf("info: D VT add channel: %s (rec=%v, links=%v, group=%s)\n",
+							chName, vtchannel.Recursive, vtchannel.Links, vtchannel.Group)
+						added = true
+					} else {
+						log.Printf("info: W VT channel not found: %s\n", chName)
+					}
+				}
+
+				// --- Channels (direct <channel>...) ---
+				for _, vtchannel := range vtvalue.Channel {
 					chName := strings.TrimSpace(vtchannel.Name)
 					if chName == "" {
 						continue

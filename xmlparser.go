@@ -622,8 +622,15 @@ type VTStruct struct {
 	ID []struct {
 		Value     uint32
 		IsCurrent bool
+		User      []string
 		Users     struct {
 			User []string
+		}
+		Channel  []struct {
+			Name      string
+			Recursive bool
+			Links     bool
+			Group     string
 		}
 		Channels struct {
 			Channel []struct {
