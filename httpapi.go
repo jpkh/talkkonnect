@@ -114,6 +114,13 @@ func (b *Talkkonnect) httpAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if APICommand == "showversion" {
+		markRemoteCommand("http:"+remoteSource, APICommand)
+		status := b.cmdDisplayVersion()
+		fmt.Fprintf(w, "200 OK: %s\n", status)
+		return
+	}
+
 	if APICommand == "gracefulldeath" {
 		markRemoteCommand("http:"+remoteSource, APICommand)
 		fmt.Fprintf(w, "200 OK: graceful shutdown requested\n")

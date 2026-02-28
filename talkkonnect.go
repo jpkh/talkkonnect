@@ -37,8 +37,8 @@ import (
 	"github.com/talkkonnect/volume-go"
 )
 
-const jpBuildVersionDefault = "v1.0.13"
-const jpBuildStamp = "2026-02-28 18:30:00"
+const jpBuildVersionDefault = "v1.0.14"
+const jpBuildStamp = "2026-02-28 18:46:00"
 
 
 func bannerFrameLine(text string) string {
@@ -54,6 +54,10 @@ func jpBuildVersion() string {
 	return jpBuildVersionDefault
 }
 
+func jpBuildText() string {
+	return fmt.Sprintf("Build %s %s -jp", jpBuildStamp, jpBuildVersion())
+}
+
 func talkkonnectBanner(backgroundcolor string) {
 	var backgroundreset string = "\u001b[0m"
 	log.Println("info: " + backgroundcolor + "┌────────────────────────────────────────────────────────────────┐" + backgroundreset)
@@ -67,7 +71,7 @@ func talkkonnectBanner(backgroundcolor string) {
 	log.Println("info: " + backgroundcolor + "├────────────────────────────────────────────────────────────────┤" + backgroundreset)
 	log.Println("info: " + backgroundcolor + "│Created By : Suvir Kumar  <suvir@talkkonnect.com>               │" + backgroundreset)
 	log.Println("info: " + backgroundcolor + bannerFrameLine("Extra Fetures by: Jani Hirivnen <jani@jdronics.fi>") + backgroundreset)
-	log.Println("info: " + backgroundcolor + bannerFrameLine("Build version: "+jpBuildStamp+" "+jpBuildVersion()+" -jp") + backgroundreset)
+	log.Println("info: " + backgroundcolor + bannerFrameLine(jpBuildText()) + backgroundreset)
 	log.Println("info: " + backgroundcolor + "├────────────────────────────────────────────────────────────────┤" + backgroundreset)
 	log.Println("info: " + backgroundcolor + "│Press the <Del> key for Menu or <Ctrl-c> to Quit talkkonnect    │" + backgroundreset)
 	log.Println("info: " + backgroundcolor + "│Additional Modifications Released under MPL 2.0 License         │" + backgroundreset)

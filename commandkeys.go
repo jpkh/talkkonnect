@@ -932,15 +932,20 @@ func (b *Talkkonnect) cmdShowUptime() {
 	log.Printf("info: Talkkonnect Now Running For %v | %s\n", secondsToCompact(int(duration.Seconds())), healthStatusLine())
 }
 
-func (b *Talkkonnect) cmdDisplayVersion() {
+func (b *Talkkonnect) cmdDisplayVersion() string {
 	log.Printf("debug: Ctrl-V Pressed \n")
 	log.Println("info: Talkkonnect Version Request ")
 	releasedVersion := checkGitHubVersion()
+	build := jpBuildText()
+	var status string
 	if talkkonnectVersion != releasedVersion {
-		log.Printf("warn: Ver %v Rel %v (Different Ver %v Available!)\n", talkkonnectVersion, talkkonnectReleased, releasedVersion)
+		status = fmt.Sprintf("Ver %v Rel %v (Different Ver %v Available!)", talkkonnectVersion, talkkonnectReleased, releasedVersion)
+		log.Printf("warn: %s | %s\n", status, build)
 	} else {
-		log.Printf("info: Ver %v Rel %v (Latest Release)\n", talkkonnectVersion, talkkonnectReleased)
+		status = fmt.Sprintf("Ver %v Rel %v (Latest Release)", talkkonnectVersion, talkkonnectReleased)
+		log.Printf("info: %s | %s\n", status, build)
 	}
+	return fmt.Sprintf("%s | %s", status, build)
 }
 
 func (b *Talkkonnect) cmdDumpXMLConfig() {
