@@ -105,6 +105,23 @@ func (b *Talkkonnect) httpAPI(w http.ResponseWriter, r *http.Request) {
 	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil && host != "" {
 		remoteSource = host
 	}
+
+	if APICommand == "showuptime" {
+		markRemoteCommand("http:"+remoteSource, APICommand)
+		fmt.Fprintf(w, "200 OK: %s\n", b.uptimeHealthCompact())
+		return
+	}
+
+	if APICommand == "gracefulldeath" {
+		markRemoteCommand("http:"+remoteSource, APICommand)
+		fmt.Fprintf(w, "200 OK: graceful shutdown requested\n")
+		go func() {
+			time.Sleep(250 * time.Millisecond)
+			b.cmdGracefulDeath()
+		}()
+		return
+	}
+
 	APIDefined := false
 	for _, apicommand := range Config.Global.Software.RemoteControl.HTTP.Command {
 		if APICommand == "listapi" && apicommand.Enabled {

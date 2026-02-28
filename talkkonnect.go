@@ -37,8 +37,8 @@ import (
 	"github.com/talkkonnect/volume-go"
 )
 
-const jpBuildVersionDefault = "v1.0.9"
-const jpBuildStamp = "2026-02-28 12:16:46"
+const jpBuildVersionDefault = "v1.0.10"
+const jpBuildStamp = "2026-02-28 12:40:20"
 
 
 func bannerFrameLine(text string) string {

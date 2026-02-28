@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sync/atomic"
 	"time"
+
+	"github.com/talkkonnect/gumble/gumble"
 )
 
 var (
@@ -65,5 +67,56 @@ func healthStatusLine() string {
 		formatLastSeen(atomic.LoadInt64(&lastRemoteCommandUnixNs), remoteInfo),
 		formatLastSeen(atomic.LoadInt64(&lastMumbleEventUnixNs), mumbleInfo),
 		formatLastSeen(atomic.LoadInt64(&lastMumblePingUnixNs), pingInfo),
+	)
+}
+
+func ageSeconds(ts int64) int64 {
+	if ts <= 0 {
+		return -1
+	}
+	return int64(time.Since(time.Unix(0, ts)).Seconds())
+}
+
+func secOrNA(v int64) string {
+	if v < 0 {
+		return "na"
+	}
+	return fmt.Sprintf("%ds", v)
+}
+
+func pingStateShort() string {
+	pingInfo, _ := lastMumblePingInfo.Load().(string)
+	switch {
+	case pingInfo == "never":
+		return "na"
+	case len(pingInfo) >= 3 && pingInfo[:3] == "ok ":
+		return "ok"
+	default:
+		return "fail"
+	}
+}
+
+func (b *Talkkonnect) refreshMumblePingHealth() {
+	if _, err := gumble.Ping(b.Address, time.Second*1, time.Second*2); err != nil {
+		markMumblePingResult(b.Address, false, err.Error())
+		return
+	}
+	markMumblePingResult(b.Address, true, "")
+}
+
+func (b *Talkkonnect) uptimeHealthCompact() string {
+	b.refreshMumblePingHealth()
+	up := time.Since(StartTime).Round(time.Second)
+	conn := 0
+	if IsConnected {
+		conn = 1
+	}
+	return fmt.Sprintf("up=%s conn=%d r=%s m=%s p=%s/%s",
+		up,
+		conn,
+		secOrNA(ageSeconds(atomic.LoadInt64(&lastRemoteCommandUnixNs))),
+		secOrNA(ageSeconds(atomic.LoadInt64(&lastMumbleEventUnixNs))),
+		pingStateShort(),
+		secOrNA(ageSeconds(atomic.LoadInt64(&lastMumblePingUnixNs))),
 	)
 }
