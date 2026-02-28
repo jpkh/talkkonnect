@@ -108,7 +108,9 @@ func (b *Talkkonnect) httpAPI(w http.ResponseWriter, r *http.Request) {
 
 	if APICommand == "showuptime" {
 		markRemoteCommand("http:"+remoteSource, APICommand)
-		fmt.Fprintf(w, "200 OK: %s\n", b.uptimeHealthCompact())
+		status := b.uptimeHealthCompact()
+		log.Printf("info: showuptime from %s -> %s", remoteSource, status)
+		fmt.Fprintf(w, "200 OK: %s\n", status)
 		return
 	}
 

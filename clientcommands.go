@@ -512,6 +512,8 @@ func (b *Talkkonnect) cmdSendVoiceTargets(targetID uint32) {
 	// Build ONE voice target with ALL users/channels, then send it ONCE.
 	vtarget := &gumble.VoiceTarget{ID: targetID}
 	added := false
+	seenUsers := map[string]bool{}
+	seenChannels := map[string]bool{}
 
 	// For debug printing (VoiceTarget internals are unexported in this fork)
 	var dbgUsers []string
@@ -539,13 +541,19 @@ func (b *Talkkonnect) cmdSendVoiceTargets(targetID uint32) {
 				log.Printf("info: D User Requested VT-ID %v\n", vtvalue.Value)
 
 				// --- Users ---
-				for _, vtuser := range vtvalue.Users.User {
+				vtUsers := append([]string{}, vtvalue.Users.User...)
+				vtUsers = append(vtUsers, vtvalue.User...)
+				for _, vtuser := range vtUsers {
 					name := strings.TrimSpace(vtuser)
 					if name == "" {
 						continue
 					}
+					if seenUsers[name] {
+						continue
+					}
 					if u := b.Client.Users.Find(name); u != nil {
 						vtarget.AddUser(u)
+						seenUsers[name] = true
 						dbgUsers = append(dbgUsers, name)
 						log.Printf("info: D VT add user: %s\n", name)
 						added = true
@@ -555,9 +563,20 @@ func (b *Talkkonnect) cmdSendVoiceTargets(targetID uint32) {
 				}
 
 				// --- Channels ---
-				for _, vtchannel := range vtvalue.Channels.Channel {
+				vtChannels := append([]struct {
+					Name      string
+					Recursive bool
+					Links     bool
+					Group     string
+				}{}, vtvalue.Channels.Channel...)
+				vtChannels = append(vtChannels, vtvalue.Channel...)
+				for _, vtchannel := range vtChannels {
 					chName := strings.TrimSpace(vtchannel.Name)
 					if chName == "" {
+						continue
+					}
+					channelKey := fmt.Sprintf("%s|%t|%t|%s", chName, vtchannel.Recursive, vtchannel.Links, vtchannel.Group)
+					if seenChannels[channelKey] {
 						continue
 					}
 
@@ -572,6 +591,7 @@ func (b *Talkkonnect) cmdSendVoiceTargets(targetID uint32) {
 					if ch != nil {
 						// Your fork’s signature: AddChannel(channel, recursive, links, group)
 						vtarget.AddChannel(ch, vtchannel.Recursive, vtchannel.Links, vtchannel.Group)
+						seenChannels[channelKey] = true
 						dbgChans = append(dbgChans, dbgChan{
 							name: chName, recursive: vtchannel.Recursive, links: vtchannel.Links, group: vtchannel.Group,
 						})

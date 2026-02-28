@@ -111,6 +111,29 @@ func secondsToHuman(input int) (result string) {
 	return
 }
 
+func secondsToCompact(input int) string {
+	if input < 0 {
+		input = 0
+	}
+	days := input / (24 * 3600)
+	rem := input % (24 * 3600)
+	hours := rem / 3600
+	rem %= 3600
+	minutes := rem / 60
+	seconds := rem % 60
+
+	if days > 0 {
+		return fmt.Sprintf("%dd%dh%dm%ds", days, hours, minutes, seconds)
+	}
+	if hours > 0 {
+		return fmt.Sprintf("%dh%dm%ds", hours, minutes, seconds)
+	}
+	if minutes > 0 {
+		return fmt.Sprintf("%dm%ds", minutes, seconds)
+	}
+	return fmt.Sprintf("%ds", seconds)
+}
+
 func localAddresses() {
 	ifaces, err := net.Interfaces()
 	if err != nil {

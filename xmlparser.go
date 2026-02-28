@@ -75,9 +75,16 @@ type ConfigStruct struct {
 				ID []struct {
 					Value     uint32 `xml:"value,attr"`
 					IsCurrent bool   `xml:"iscurrent"`
+					User      []string `xml:"user"`
 					Users     struct {
 						User []string `xml:"user"`
 					} `xml:"users"`
+					Channel  []struct {
+						Name      string `xml:"name"`
+						Recursive bool   `xml:"recursive"`
+						Links     bool   `xml:"links"`
+						Group     string `xml:"group"`
+					} `xml:"channel"`
 					Channels struct {
 						Channel []struct {
 							Name      string `xml:"name"`

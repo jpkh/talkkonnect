@@ -547,7 +547,7 @@ func (b *Talkkonnect) cmdGPSPosition() {
 func (b *Talkkonnect) cmdQuitTalkkonnect() {
 	log.Printf("debug: Ctrl-C Terminate Program Requested \n")
 	duration := time.Since(StartTime)
-	log.Printf("info: Talkkonnect Now Running For %v \n", secondsToHuman(int(duration.Seconds())))
+	log.Printf("info: Talkkonnect Now Running For %v \n", secondsToCompact(int(duration.Seconds())))
 	b.sevenSegment("bye", "")
 	TTSEvent("quittalkkonnect")
 	CleanUp(false)
@@ -556,7 +556,7 @@ func (b *Talkkonnect) cmdQuitTalkkonnect() {
 func (b *Talkkonnect) cmdGracefulDeath() {
 	log.Println("warn: Graceful shutdown requested via remote command")
 	duration := time.Since(StartTime)
-	log.Printf("info: Talkkonnect Now Running For %v \n", secondsToHuman(int(duration.Seconds())))
+	log.Printf("info: Talkkonnect Now Running For %v \n", secondsToCompact(int(duration.Seconds())))
 	b.sevenSegment("bye", "")
 	CleanUp(false)
 }
@@ -929,7 +929,7 @@ func (b *Talkkonnect) cmdShowUptime() {
 	log.Println("info: Talkkonnect Uptime Request ")
 	b.refreshMumblePingHealth()
 	duration := time.Since(StartTime)
-	log.Printf("info: Talkkonnect Now Running For %v | %s\n", secondsToHuman(int(duration.Seconds())), healthStatusLine())
+	log.Printf("info: Talkkonnect Now Running For %v | %s\n", secondsToCompact(int(duration.Seconds())), healthStatusLine())
 }
 
 func (b *Talkkonnect) cmdDisplayVersion() {
