@@ -133,8 +133,7 @@ func talkkonnectAcknowledgements(backgroundcolor string) {
 	log.Println("info: " + backgroundcolor + "│enabling us to take talkkonnect to use cases never originally imagined                        │" + backgroundreset)
 	log.Println("info: " + backgroundcolor + "├──────────────────────────────────────────────────────────────────────────────────────────────┤" + backgroundreset)
 	log.Println("info: " + backgroundcolor + "│visit us at www.talkkonnect.com and github.com/talkkonnect                                    │" + backgroundreset)
-	log.Println("info: " + backgroundcolor + "│talkkonnect was created by Suvir Kumar <suvir@talkkonnect.com> & Re
-	leased under MPLV2 License │" + backgroundreset)
+	log.Println("info: " + backgroundcolor + "│talkkonnect was created by Suvir Kumar <suvir@talkkonnect.com> & Released under MPLV2 License │" + backgroundreset)
 	log.Println("info: " + backgroundcolor + "└──────────────────────────────────────────────────────────────────────────────────────────────┘" + backgroundreset)
 }
 
