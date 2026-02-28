@@ -32,16 +32,13 @@ package talkkonnect
 import (
 	"fmt"
 	"log"
-	"os"
-	"path/filepath"
 	"strconv"
-	"strings"
 
 	"github.com/talkkonnect/volume-go"
 )
 
-const jpBuildVersionDefault = "v1.0.8"
-const jpBuildStamp = "2026-02-28 11:21:43"
+const jpBuildVersionDefault = "v1.0.9"
+const jpBuildStamp = "2026-02-28 12:16:46"
 
 
 func bannerFrameLine(text string) string {
@@ -54,29 +51,6 @@ func bannerFrameLine(text string) string {
 }
 
 func jpBuildVersion() string {
-	paths := []string{}
-
-	if exePath, err := os.Executable(); err == nil {
-		exeDir := filepath.Dir(exePath)
-		paths = append(paths, filepath.Join(exeDir, "TK-BuildVersion.local.txt"))
-	}
-
-	paths = append(paths,
-		"TK-BuildVersion.local.txt",
-		"Project/Hypcom/Configs/TK-BuildVersion.txt",
-		"../jdcustomer/Projects/Hypcom/Configs/TK-BuildVersion.txt",
-		"TK-BuildVersion.txt",
-	)
-	for _, p := range paths {
-		b, err := os.ReadFile(p)
-		if err != nil {
-			continue
-		}
-		v := strings.TrimSpace(string(b))
-		if v != "" {
-			return v
-		}
-	}
 	return jpBuildVersionDefault
 }
 
