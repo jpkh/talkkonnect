@@ -34,6 +34,7 @@ import (
 	"errors"
 	"log"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/talkkonnect/go-openal/openal"
@@ -47,6 +48,7 @@ var (
 	now          = time.Now()
 	TotalStreams int
 	NeedToKill   int
+	streamTrackerMu sync.Mutex
 )
 
 // MumbleDuplex - listenera and outgoing
@@ -139,13 +141,18 @@ func (b *Talkkonnect) StopSource() error {
 }
 
 func (s *Stream) OnAudioStream(e *gumble.AudioStreamEvent) {
-	TotalStreams++
-	if _, userexists := StreamTracker[e.User.UserID]; userexists {
-		log.Printf("debug: Stale GoRoutine Detected For UserID=%v UserName=%v Session=%v AudioStreamChannel=%v", e.User.UserID, e.User.Name, e.User.Session, e.C)
-		NeedToKill++
+	if e == nil || e.User == nil {
 		return
 	}
+
+	streamTrackerMu.Lock()
+	TotalStreams++
+	if old, userexists := StreamTracker[e.User.UserID]; userexists {
+		log.Printf("debug: Replacing stale stream goroutine For UserID=%v UserName=%v OldSession=%v NewSession=%v OldC=%v NewC=%v", e.User.UserID, e.User.Name, old.UserSession, e.User.Session, old.C, e.C)
+		NeedToKill++
+	}
 	StreamTracker[e.User.UserID] = streamTrackerStruct{UserID: e.User.UserID, UserName: e.User.Name, UserSession: e.User.Session, C: e.C}
+	streamTrackerMu.Unlock()
 	goStreamStats()
 
 	go func() {
@@ -158,10 +165,14 @@ func (s *Stream) OnAudioStream(e *gumble.AudioStreamEvent) {
 				default:
 				}
 			}
-			delete(StreamTracker, e.User.UserID)
+			streamTrackerMu.Lock()
+			if cur, ok := StreamTracker[e.User.UserID]; ok && cur.C == e.C {
+				delete(StreamTracker, e.User.UserID)
+			}
 			if TotalStreams > 0 {
 				TotalStreams--
 			}
+			streamTrackerMu.Unlock()
 		}()
 
 		if s.contextSink == nil || s.deviceSink == nil {
@@ -404,6 +415,8 @@ func (b *Talkkonnect) ResetStream() {
 }
 
 func goStreamStats() {
+	streamTrackerMu.Lock()
+	defer streamTrackerMu.Unlock()
 	log.Println("debug: Active Streams")
 	for item, value := range StreamTracker {
 		log.Printf("debug: Item=%v UserID=%v UserName=%v Session=%v AudioStreamChannel=%v", item, value.UserID, value.UserName, value.UserSession, value.C)

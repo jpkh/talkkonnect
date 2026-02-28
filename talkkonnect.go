@@ -36,12 +36,13 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/talkkonnect/volume-go"
 )
 
 const jpBuildVersionDefault = "v1.0.8"
+const jpBuildStamp = "2026-02-28 11:21:43"
+
 
 func bannerFrameLine(text string) string {
 	const lineWidth = 64
@@ -92,8 +93,7 @@ func talkkonnectBanner(backgroundcolor string) {
 	log.Println("info: " + backgroundcolor + "├────────────────────────────────────────────────────────────────┤" + backgroundreset)
 	log.Println("info: " + backgroundcolor + "│Created By : Suvir Kumar  <suvir@talkkonnect.com>               │" + backgroundreset)
 	log.Println("info: " + backgroundcolor + bannerFrameLine("Extra Fetures by: Jani Hirivnen <jani@jdronics.fi>") + backgroundreset)
-	buildStamp := time.Now().Format("2006-01-02 15:04:05")
-	log.Println("info: " + backgroundcolor + bannerFrameLine("Build version: "+buildStamp+" "+jpBuildVersion()+" -jp") + backgroundreset)
+	log.Println("info: " + backgroundcolor + bannerFrameLine("Build version: "+jpBuildStamp+" "+jpBuildVersion()+" -jp") + backgroundreset)
 	log.Println("info: " + backgroundcolor + "├────────────────────────────────────────────────────────────────┤" + backgroundreset)
 	log.Println("info: " + backgroundcolor + "│Press the <Del> key for Menu or <Ctrl-c> to Quit talkkonnect    │" + backgroundreset)
 	log.Println("info: " + backgroundcolor + "│Additional Modifications Released under MPL 2.0 License         │" + backgroundreset)
@@ -133,7 +133,8 @@ func talkkonnectAcknowledgements(backgroundcolor string) {
 	log.Println("info: " + backgroundcolor + "│enabling us to take talkkonnect to use cases never originally imagined                        │" + backgroundreset)
 	log.Println("info: " + backgroundcolor + "├──────────────────────────────────────────────────────────────────────────────────────────────┤" + backgroundreset)
 	log.Println("info: " + backgroundcolor + "│visit us at www.talkkonnect.com and github.com/talkkonnect                                    │" + backgroundreset)
-	log.Println("info: " + backgroundcolor + "│talkkonnect was created by Suvir Kumar <suvir@talkkonnect.com> & Released under MPLV2 License │" + backgroundreset)
+	log.Println("info: " + backgroundcolor + "│talkkonnect was created by Suvir Kumar <suvir@talkkonnect.com> & Re
+	leased under MPLV2 License │" + backgroundreset)
 	log.Println("info: " + backgroundcolor + "└──────────────────────────────────────────────────────────────────────────────────────────────┘" + backgroundreset)
 }
 

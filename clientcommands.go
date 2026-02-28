@@ -54,6 +54,7 @@ var (
 	listeningStateMu          sync.RWMutex
 	activeListeningChannelIDs = map[uint32]struct{}{}
 	lastListeningAudioUnixNs  int64
+	listeningCommandMu        sync.Mutex
 )
 
 func setActiveListeningChannels(channelIDs []uint32) {
@@ -859,6 +860,20 @@ func (b *Talkkonnect) cmdListeningStart() {
 		log.Println("warn: cmdListeningStart ignored: not connected")
 		return
 	}
+	listeningCommandMu.Lock()
+	defer listeningCommandMu.Unlock()
+
+	if b.IsTransmitting {
+		log.Println("warn: cmdListeningStart detected TX active; forcing TransmitStop for RX recovery")
+		b.TransmitStop(false)
+	}
+
+	if Config.Global.Software.Settings.SimplexWithMute {
+		if err := volume.Unmute(Config.Global.Software.Settings.OutputDevice); err != nil {
+			log.Printf("warn: cmdListeningStart output unmute check failed: %v", err)
+		}
+	}
+
 	log.Println("info: cmdListeningStart requested")
 	start := time.Now()
 	b.listeningToChannels("start")
@@ -876,6 +891,8 @@ func (b *Talkkonnect) cmdListeningStop() {
 		log.Println("warn: cmdListeningStop ignored: not connected")
 		return
 	}
+	listeningCommandMu.Lock()
+	defer listeningCommandMu.Unlock()
 	log.Println("info: cmdListeningStop requested")
 	b.listeningToChannels("stop")
 }
