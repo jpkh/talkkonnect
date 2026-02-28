@@ -81,7 +81,7 @@ func secOrNA(v int64) string {
 	if v < 0 {
 		return "na"
 	}
-	return fmt.Sprintf("%ds", v)
+	return secondsToHuman(int(v))
 }
 
 func pingStateShort() string {
@@ -106,7 +106,7 @@ func (b *Talkkonnect) refreshMumblePingHealth() {
 
 func (b *Talkkonnect) uptimeHealthCompact() string {
 	b.refreshMumblePingHealth()
-	up := time.Since(StartTime).Round(time.Second)
+	up := secondsToHuman(int(time.Since(StartTime).Seconds()))
 	conn := 0
 	if IsConnected {
 		conn = 1
