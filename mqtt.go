@@ -170,6 +170,7 @@ func (b *Talkkonnect) onMessageReceived(client MQTT.Client, message MQTT.Message
 	for _, mqttcommand := range Config.Global.Software.RemoteControl.MQTT.Commands.Command {
 		if strings.Contains(Command[0], mqttcommand.Action) {
 			if mqttcommand.Enabled {
+				markRemoteCommand("mqtt:"+message.Topic(), Command[0])
 				log.Print("alert : mqttcommand ", mqttcommand)
 				var Err error
 				switch Command[0] {

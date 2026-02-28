@@ -33,6 +33,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -100,6 +101,10 @@ func (b *Talkkonnect) httpAPI(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	APICommand := strings.ToLower(APICommands[0])
+	remoteSource := r.RemoteAddr
+	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil && host != "" {
+		remoteSource = host
+	}
 	APIDefined := false
 	for _, apicommand := range Config.Global.Software.RemoteControl.HTTP.Command {
 		if APICommand == "listapi" && apicommand.Enabled {
@@ -194,6 +199,7 @@ func (b *Talkkonnect) httpAPI(w http.ResponseWriter, r *http.Request) {
 
 	for _, apicommand := range Config.Global.Software.RemoteControl.HTTP.Command {
 		if apicommand.Action == APICommand {
+			markRemoteCommand("http:"+remoteSource, APICommand)
 			if len(apicommand.Funcparamname) == 0 {
 				_, err := b.Call(funcs, apicommand.Action)
 				if err != nil {

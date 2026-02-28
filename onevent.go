@@ -43,6 +43,7 @@ var prevParticipantCount = 1
 var participantsLED bool = false
 
 func (b *Talkkonnect) OnConnect(e *gumble.ConnectEvent) {
+	markMumbleEvent("connect")
 	if Config.Global.Hardware.TargetBoard == "rpi" {
 		GPIOOutPin("online", "on")
 		//MyLedStripOnlineLEDOn()
@@ -93,6 +94,7 @@ func (b *Talkkonnect) OnConnect(e *gumble.ConnectEvent) {
 }
 
 func (b *Talkkonnect) OnDisconnect(e *gumble.DisconnectEvent) {
+	markMumbleEvent("disconnect")
 	var reason string
 
 	if Config.Global.Hardware.TargetBoard == "rpi" {
@@ -129,6 +131,7 @@ func (b *Talkkonnect) OnDisconnect(e *gumble.DisconnectEvent) {
 }
 
 func (b *Talkkonnect) OnTextMessage(e *gumble.TextMessageEvent) {
+	markMumbleEvent("textmessage")
 	if Config.Global.Hardware.TargetBoard == "rpi" {
 		b.BackLightTimer()
 	}
@@ -223,6 +226,7 @@ func (b *Talkkonnect) OnTextMessage(e *gumble.TextMessageEvent) {
 }
 
 func (b *Talkkonnect) OnUserChange(e *gumble.UserChangeEvent) {
+	markMumbleEvent("userchange")
 	b.BackLightTimer()
 
 	var info string = ""
@@ -401,6 +405,7 @@ func (b *Talkkonnect) OnUserChange(e *gumble.UserChangeEvent) {
 }
 
 func (b *Talkkonnect) OnPermissionDenied(e *gumble.PermissionDeniedEvent) {
+	markMumbleEvent("permissiondenied")
 	channelID := uint32(0)
 	channelName := ""
 	if e.Channel != nil {
@@ -434,6 +439,7 @@ func (b *Talkkonnect) OnPermissionDenied(e *gumble.PermissionDeniedEvent) {
 }
 
 func (b *Talkkonnect) OnChannelChange(e *gumble.ChannelChangeEvent) {
+	markMumbleEvent("channelchange")
 	if e.Channel.IsRoot() {
 		RootChannel = e.Channel
 	}

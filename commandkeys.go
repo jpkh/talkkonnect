@@ -40,6 +40,7 @@ import (
 	"time"
 
 	hd44780 "github.com/talkkonnect/go-hd44780"
+	"github.com/talkkonnect/gumble/gumble"
 	"github.com/talkkonnect/volume-go"
 )
 
@@ -919,8 +920,13 @@ func cmdThanks() {
 func (b *Talkkonnect) cmdShowUptime() {
 	log.Printf("debug: Ctrl-U Pressed \n")
 	log.Println("info: Talkkonnect Uptime Request ")
+	if _, err := gumble.Ping(b.Address, time.Second*1, time.Second*2); err != nil {
+		markMumblePingResult(b.Address, false, err.Error())
+	} else {
+		markMumblePingResult(b.Address, true, "")
+	}
 	duration := time.Since(StartTime)
-	log.Printf("info: Talkkonnect Now Running For %v \n", secondsToHuman(int(duration.Seconds())))
+	log.Printf("info: Talkkonnect Now Running For %v | %s\n", secondsToHuman(int(duration.Seconds())), healthStatusLine())
 }
 
 func (b *Talkkonnect) cmdDisplayVersion() {

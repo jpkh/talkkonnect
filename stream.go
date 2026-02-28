@@ -144,6 +144,7 @@ func (s *Stream) OnAudioStream(e *gumble.AudioStreamEvent) {
 	if e == nil || e.User == nil {
 		return
 	}
+	markMumbleEvent("audio:" + e.User.Name)
 
 	streamTrackerMu.Lock()
 	TotalStreams++
