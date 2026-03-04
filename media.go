@@ -144,7 +144,6 @@ func (b *Talkkonnect) PlayTone(toneFreq int, toneDuration float32, destination s
 
 }
 
-/*
 func playAnnouncementMedia(id int) {
 
 	for _, multimedia := range Config.Global.Multimedia.ID {
@@ -183,7 +182,6 @@ func playAnnouncementMedia(id int) {
 		}
 	}
 }
-*/
 
 func findEventSound(findEventSound string) EventSoundStruct {
 	for _, sound := range Config.Global.Software.Sounds.Sound {

@@ -62,6 +62,7 @@ func (b *Talkkonnect) httpAPI(w http.ResponseWriter, r *http.Request) {
 		"stoptransmitting":   b.cmdStopTransmitting,
 		"listonlineusers":    b.cmdListOnlineUsers,
 		"playback":           b.cmdPlayback,
+		"playannouncement":   b.cmdPlayAnnouncement,
 		"gpsposition":        b.cmdGPSPosition,
 		"sendemail":          b.cmdSendEmail,
 		"previousserver":     b.cmdConnPreviousServer,
@@ -256,6 +257,13 @@ func (b *Talkkonnect) httpAPI(w http.ResponseWriter, r *http.Request) {
 							log.Println("error: Wrong Parameters to Call Function")
 						} else {
 							fmt.Fprintf(w, "200 OK: http command %v OK \n", APICommand)
+						}
+					case "playannouncement":
+						_, err := b.Call(funcs, "playannouncement", APIID)
+						if err != nil {
+							log.Println("error: Wrong Parameters to Call Function")
+						} else {
+							fmt.Fprintf(w, "200 OK: http command %v id=%v OK \n", APICommand, APIID)
 						}
 					}
 				}

@@ -440,6 +440,13 @@ func (b *Talkkonnect) cmdListOnlineUsers() {
 	// b.ParticipantLEDUpdate(true)
 }
 
+// cmdPlayAnnouncement is the HTTP API handler for ?command=playannouncement&id=N.
+// It plays the multimedia entry matching the given ID from the XML <multimedia> section.
+func (b *Talkkonnect) cmdPlayAnnouncement(id int) {
+	log.Printf("info: HTTP playannouncement requested for id=%d\n", id)
+	go playAnnouncementMedia(id)
+}
+
 func (b *Talkkonnect) cmdPlayback() {
 	log.Printf("debug: F11 pressed Start/Stop Stream Stream into Current Channel Requested \n")
 	log.Println("info: Stream into Current Channel")
