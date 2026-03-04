@@ -934,9 +934,9 @@ func cmdThanks() {
 func (b *Talkkonnect) cmdShowUptime() {
 	log.Printf("debug: Ctrl-U Pressed \n")
 	log.Println("info: Talkkonnect Uptime Request ")
-	b.refreshMumblePingHealth()
 	duration := time.Since(StartTime)
-	log.Printf("info: Talkkonnect Now Running For %v | %s\n", secondsToCompact(int(duration.Seconds())), healthStatusLine())
+	status := b.uptimeHealthCompact()
+	log.Printf("info: Talkkonnect Now Running For %v | %s | %s\n", secondsToCompact(int(duration.Seconds())), status, healthStatusLine())
 }
 
 func (b *Talkkonnect) cmdDisplayVersion() string {

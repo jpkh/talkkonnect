@@ -111,12 +111,33 @@ func (b *Talkkonnect) uptimeHealthCompact() string {
 	if IsConnected {
 		conn = 1
 	}
-	return fmt.Sprintf("up=%s conn=%d r=%s m=%s p=%s/%s",
+	vt := b.currentVoiceTargetID()
+	return fmt.Sprintf("up=%s conn=%d vt=%d r=%s m=%s p=%s/%s",
 		up,
 		conn,
+		vt,
 		secOrNA(ageSeconds(atomic.LoadInt64(&lastRemoteCommandUnixNs))),
 		secOrNA(ageSeconds(atomic.LoadInt64(&lastMumbleEventUnixNs))),
 		pingStateShort(),
 		secOrNA(ageSeconds(atomic.LoadInt64(&lastMumblePingUnixNs))),
 	)
+}
+
+func currentVoiceTargetIDFromConfig() uint32 {
+	if AccountIndex < 0 || AccountIndex >= len(Config.Accounts.Account) {
+		return 0
+	}
+	for _, vt := range Config.Accounts.Account[AccountIndex].Voicetargets.ID {
+		if vt.IsCurrent {
+			return vt.Value
+		}
+	}
+	return 0
+}
+
+func (b *Talkkonnect) currentVoiceTargetID() uint32 {
+	if b != nil && b.Client != nil && b.Client.VoiceTarget != nil {
+		return b.Client.VoiceTarget.ID
+	}
+	return currentVoiceTargetIDFromConfig()
 }
