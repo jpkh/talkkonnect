@@ -45,24 +45,29 @@ func aplayLocal(fileNameWithPath string) {
 	var CmdArguments = []string{}
 
 	if path, err := exec.LookPath("aplay"); err == nil {
-		CmdArguments = []string{fileNameWithPath, "-q", "-N"}
+		CmdArguments = []string{"-q", "-N", fileNameWithPath}
 		player = path
 	} else if path, err := exec.LookPath("paplay"); err == nil {
 		CmdArguments = []string{fileNameWithPath}
 		player = path
 	} else {
+		log.Printf("error: aplayLocal neither aplay nor paplay found in PATH\n")
 		return
 	}
 
-	log.Printf("debug: player %v CmdArguments %v", player, CmdArguments)
+	log.Printf("info: aplayLocal running: %v %v\n", player, CmdArguments)
 
 	cmd := exec.Command(player, CmdArguments...)
 
-	_, err := cmd.CombinedOutput()
-
+	out, err := cmd.CombinedOutput()
 	if err != nil {
+		log.Printf("error: aplayLocal %v failed: %v — output: %s\n", player, err, string(out))
 		return
 	}
+	if len(out) > 0 {
+		log.Printf("info: aplayLocal %v output: %s\n", player, string(out))
+	}
+	log.Printf("info: aplayLocal %v completed OK\n", player)
 }
 
 func localMediaPlayer(fileNameWithPath string, playbackvolume int, blocking bool, duration float32, loop int) {
@@ -181,6 +186,7 @@ func playAnnouncementMedia(id int) {
 				// Use aplayLocal directly — ffplay requires SDL/DISPLAY which is unavailable
 				// in headless daemon context (XDG_RUNTIME_DIR not set). aplay works without display.
 				aplayLocal(source.File)
+				log.Printf("info: playAnnouncementMedia id=%d source %q aplayLocal returned\n", id, source.Name)
 			}
 			if multimedia.Params.Postdelay.Enabled && multimedia.Params.Postdelay.Value > 0 {
 				time.Sleep(multimedia.Params.Postdelay.Value * time.Second)
