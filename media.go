@@ -41,36 +41,41 @@ import (
 )
 
 func aplayLocal(fileNameWithPath string) {
-	var player string
-	var CmdArguments = []string{}
-
-	// Prefer paplay (PulseAudio) — it mixes with existing PA streams so it works
-	// even when TK already holds the ALSA device open for mumble audio.
-	// Fall back to aplay only if paplay is not available.
-	if path, err := exec.LookPath("paplay"); err == nil {
-		CmdArguments = []string{fileNameWithPath}
-		player = path
-	} else if path, err := exec.LookPath("aplay"); err == nil {
-		CmdArguments = []string{"-q", "-N", fileNameWithPath}
-		player = path
-	} else {
-		log.Printf("error: aplayLocal neither paplay nor aplay found in PATH\n")
+	aplayPath, err := exec.LookPath("aplay")
+	if err != nil {
+		log.Printf("error: aplayLocal aplay not found in PATH\n")
 		return
 	}
 
-	log.Printf("info: aplayLocal running: %v %v\n", player, CmdArguments)
+	// Use the configured output device — on PAT units this is "default" (routes via
+	// dmix, supports concurrent access alongside TK). On OPER it is "multi_output"
+	// (ALSA virtual device, also supports concurrent access).
+	// Using the same device name as TK avoids "Device or resource busy" errors.
+	outputDevice := Config.Global.Software.Settings.OutputDevice
+	if outputDevice == "" {
+		outputDevice = "default"
+	}
 
-	cmd := exec.Command(player, CmdArguments...)
-
+	args := []string{"-D", outputDevice, "-q", "-N", fileNameWithPath}
+	log.Printf("info: aplayLocal trying: %v %v\n", aplayPath, args)
+	cmd := exec.Command(aplayPath, args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Printf("error: aplayLocal %v failed: %v — output: %s\n", player, err, string(out))
-		return
+		log.Printf("warn: aplayLocal -D %v failed: %v — output: %s\n", outputDevice, err, string(out))
+		// fallback: let aplay choose the device
+		args = []string{"-q", "-N", fileNameWithPath}
+		log.Printf("info: aplayLocal fallback (no -D): %v %v\n", aplayPath, args)
+		cmd = exec.Command(aplayPath, args...)
+		out, err = cmd.CombinedOutput()
+		if err != nil {
+			log.Printf("error: aplayLocal fallback also failed: %v — output: %s\n", err, string(out))
+			return
+		}
 	}
 	if len(out) > 0 {
-		log.Printf("info: aplayLocal %v output: %s\n", player, string(out))
+		log.Printf("info: aplayLocal output: %s\n", string(out))
 	}
-	log.Printf("info: aplayLocal %v completed OK\n", player)
+	log.Printf("info: aplayLocal completed OK (device=%v)\n", outputDevice)
 }
 
 func localMediaPlayer(fileNameWithPath string, playbackvolume int, blocking bool, duration float32, loop int) {
@@ -185,11 +190,13 @@ func playAnnouncementMedia(id int) {
 					log.Printf("error: playAnnouncementMedia id=%d source %q file not found: %v\n", id, source.Name, source.File)
 					continue
 				}
-				log.Printf("info: playAnnouncementMedia id=%d playing source %q file=%v vol=%d loop=%d\n", id, source.Name, source.File, source.Volume, source.Loop)
-				// Use aplayLocal directly — ffplay requires SDL/DISPLAY which is unavailable
-				// in headless daemon context (XDG_RUNTIME_DIR not set). aplay works without display.
-				aplayLocal(source.File)
-				log.Printf("info: playAnnouncementMedia id=%d source %q aplayLocal returned\n", id, source.Name)
+				vol := source.Volume
+				if vol <= 0 {
+					vol = 100
+				}
+				log.Printf("info: playAnnouncementMedia id=%d playing source %q file=%v vol=%d loop=%d\n", id, source.Name, source.File, vol, source.Loop)
+				localMediaPlayer(source.File, vol, false, 0, 1)
+				log.Printf("info: playAnnouncementMedia id=%d source %q localMediaPlayer returned\n", id, source.Name)
 			}
 			if multimedia.Params.Postdelay.Enabled && multimedia.Params.Postdelay.Value > 0 {
 				time.Sleep(multimedia.Params.Postdelay.Value * time.Second)
