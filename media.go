@@ -44,14 +44,17 @@ func aplayLocal(fileNameWithPath string) {
 	var player string
 	var CmdArguments = []string{}
 
-	if path, err := exec.LookPath("aplay"); err == nil {
-		CmdArguments = []string{"-q", "-N", fileNameWithPath}
-		player = path
-	} else if path, err := exec.LookPath("paplay"); err == nil {
+	// Prefer paplay (PulseAudio) — it mixes with existing PA streams so it works
+	// even when TK already holds the ALSA device open for mumble audio.
+	// Fall back to aplay only if paplay is not available.
+	if path, err := exec.LookPath("paplay"); err == nil {
 		CmdArguments = []string{fileNameWithPath}
 		player = path
+	} else if path, err := exec.LookPath("aplay"); err == nil {
+		CmdArguments = []string{"-q", "-N", fileNameWithPath}
+		player = path
 	} else {
-		log.Printf("error: aplayLocal neither aplay nor paplay found in PATH\n")
+		log.Printf("error: aplayLocal neither paplay nor aplay found in PATH\n")
 		return
 	}
 
