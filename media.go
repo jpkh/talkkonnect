@@ -178,7 +178,9 @@ func playAnnouncementMedia(id int) {
 					continue
 				}
 				log.Printf("info: playAnnouncementMedia id=%d playing source %q file=%v vol=%d loop=%d\n", id, source.Name, source.File, source.Volume, source.Loop)
-				localMediaPlayer(source.File, source.Volume, source.Blocking, source.Duration, source.Loop)
+				// Use aplayLocal directly — ffplay requires SDL/DISPLAY which is unavailable
+				// in headless daemon context (XDG_RUNTIME_DIR not set). aplay works without display.
+				aplayLocal(source.File)
 			}
 			if multimedia.Params.Postdelay.Enabled && multimedia.Params.Postdelay.Value > 0 {
 				time.Sleep(multimedia.Params.Postdelay.Value * time.Second)
