@@ -462,8 +462,12 @@ func (b *Talkkonnect) cmdPlayEventSound(eventName string) {
 		log.Printf("error: playeventsound event=%q file not found: %q\n", eventName, eventSound.FileName)
 		return
 	}
-	// Use aplayLocal — avoids potential ffplay/ALSA device conflict, consistent with GPIO event sounds
-	go aplayLocal(eventSound.FileName)
+	// Use localMediaPlayer (ffplay) — aplay fails "device busy" when Mumble holds ALSA exclusively
+	v := 80
+	if s, err := strconv.ParseFloat(eventSound.Volume, 32); err == nil {
+		v = int(s)
+	}
+	go localMediaPlayer(eventSound.FileName, v, eventSound.Blocking, 0, 1)
 }
 
 func (b *Talkkonnect) cmdPlayback() {
