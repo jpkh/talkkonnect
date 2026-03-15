@@ -457,11 +457,13 @@ func (b *Talkkonnect) cmdPlayEventSound(eventName string) {
 		log.Printf("warn: playeventsound event=%q not found or disabled in XML <sounds>\n", eventName)
 		return
 	}
-	if v, err := strconv.Atoi(eventSound.Volume); err == nil {
-		go localMediaPlayer(eventSound.FileName, v, eventSound.Blocking, 0, 1)
-	} else {
-		log.Printf("warn: playeventsound event=%q invalid volume %q\n", eventName, eventSound.Volume)
+	log.Printf("info: playeventsound event=%q file=%q volume=%q blocking=%v\n", eventName, eventSound.FileName, eventSound.Volume, eventSound.Blocking)
+	if !FileExists(eventSound.FileName) {
+		log.Printf("error: playeventsound event=%q file not found: %q\n", eventName, eventSound.FileName)
+		return
 	}
+	// Use aplayLocal — avoids potential ffplay/ALSA device conflict, consistent with GPIO event sounds
+	go aplayLocal(eventSound.FileName)
 }
 
 func (b *Talkkonnect) cmdPlayback() {

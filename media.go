@@ -92,10 +92,16 @@ func localMediaPlayer(fileNameWithPath string, playbackvolume int, blocking bool
 	}
 
 	cmd := exec.Command("/usr/bin/ffplay", CmdArguments...)
+	log.Printf("info: localMediaPlayer starting ffplay: %v %v\n", "/usr/bin/ffplay", CmdArguments)
 
 	WaitForFFPlay := make(chan struct{})
 	go func() {
-		cmd.Run()
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			log.Printf("error: localMediaPlayer ffplay failed: %v — output: %s\n", err, string(out))
+		} else {
+			log.Printf("info: localMediaPlayer ffplay completed OK (file=%v)\n", fileNameWithPath)
+		}
 		if blocking {
 			WaitForFFPlay <- struct{}{} // signal that the routine has completed
 		}
