@@ -58,14 +58,12 @@ func aplayLocal(fileNameWithPath string) {
 	}
 
 	args := []string{"-D", outputDevice, "-q", "-N", fileNameWithPath}
-	log.Printf("info: aplayLocal trying: %v %v\n", aplayPath, args)
 	cmd := exec.Command(aplayPath, args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Printf("warn: aplayLocal -D %v failed: %v — output: %s\n", outputDevice, err, string(out))
 		// fallback: let aplay choose the device
 		args = []string{"-q", "-N", fileNameWithPath}
-		log.Printf("info: aplayLocal fallback (no -D): %v %v\n", aplayPath, args)
 		cmd = exec.Command(aplayPath, args...)
 		out, err = cmd.CombinedOutput()
 		if err != nil {
@@ -73,10 +71,6 @@ func aplayLocal(fileNameWithPath string) {
 			return
 		}
 	}
-	if len(out) > 0 {
-		log.Printf("info: aplayLocal output: %s\n", string(out))
-	}
-	log.Printf("info: aplayLocal completed OK (device=%v)\n", outputDevice)
 }
 
 func localMediaPlayer(fileNameWithPath string, playbackvolume int, blocking bool, duration float32, loop int) {
@@ -94,15 +88,12 @@ func localMediaPlayer(fileNameWithPath string, playbackvolume int, blocking bool
 
 	cmd := exec.Command("/usr/bin/ffplay", CmdArguments...)
 	cmd.Env = append(os.Environ(), "SDL_AUDIODRIVER=alsa")
-	log.Printf("info: localMediaPlayer starting ffplay: %v %v\n", "/usr/bin/ffplay", CmdArguments)
 
 	WaitForFFPlay := make(chan struct{})
 	go func() {
 		out, err := cmd.CombinedOutput()
 		if err != nil {
 			log.Printf("error: localMediaPlayer ffplay failed: %v — output: %s\n", err, string(out))
-		} else {
-			log.Printf("info: localMediaPlayer ffplay completed OK (file=%v)\n", fileNameWithPath)
 		}
 		if blocking {
 			WaitForFFPlay <- struct{}{} // signal that the routine has completed

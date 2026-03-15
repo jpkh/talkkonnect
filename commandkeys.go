@@ -451,13 +451,11 @@ func (b *Talkkonnect) cmdPlayAnnouncement(id int) {
 // It plays the <sounds> event entry by name — identical path to Mumble protocol events
 // (e.g. event=alert, event=message, event=joinedchannel, etc.).
 func (b *Talkkonnect) cmdPlayEventSound(eventName string) {
-	log.Printf("info: HTTP playeventsound requested for event=%q\n", eventName)
 	eventSound := findEventSound(eventName)
 	if !eventSound.Enabled {
 		log.Printf("warn: playeventsound event=%q not found or disabled in XML <sounds>\n", eventName)
 		return
 	}
-	log.Printf("info: playeventsound event=%q file=%q volume=%q blocking=%v\n", eventName, eventSound.FileName, eventSound.Volume, eventSound.Blocking)
 	if !FileExists(eventSound.FileName) {
 		log.Printf("error: playeventsound event=%q file not found: %q\n", eventName, eventSound.FileName)
 		return
