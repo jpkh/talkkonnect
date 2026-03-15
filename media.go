@@ -35,6 +35,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"strconv"
 	"time"
@@ -92,6 +93,7 @@ func localMediaPlayer(fileNameWithPath string, playbackvolume int, blocking bool
 	}
 
 	cmd := exec.Command("/usr/bin/ffplay", CmdArguments...)
+	cmd.Env = append(os.Environ(), "SDL_AUDIODRIVER=alsa")
 	log.Printf("info: localMediaPlayer starting ffplay: %v %v\n", "/usr/bin/ffplay", CmdArguments)
 
 	WaitForFFPlay := make(chan struct{})
