@@ -447,6 +447,23 @@ func (b *Talkkonnect) cmdPlayAnnouncement(id int) {
 	go playAnnouncementMedia(id)
 }
 
+// cmdPlayEventSound is the HTTP API handler for ?command=playeventsound&event=NAME.
+// It plays the <sounds> event entry by name — identical path to Mumble protocol events
+// (e.g. event=alert, event=message, event=joinedchannel, etc.).
+func (b *Talkkonnect) cmdPlayEventSound(eventName string) {
+	log.Printf("info: HTTP playeventsound requested for event=%q\n", eventName)
+	eventSound := findEventSound(eventName)
+	if !eventSound.Enabled {
+		log.Printf("warn: playeventsound event=%q not found or disabled in XML <sounds>\n", eventName)
+		return
+	}
+	if v, err := strconv.Atoi(eventSound.Volume); err == nil {
+		go localMediaPlayer(eventSound.FileName, v, eventSound.Blocking, 0, 1)
+	} else {
+		log.Printf("warn: playeventsound event=%q invalid volume %q\n", eventName, eventSound.Volume)
+	}
+}
+
 func (b *Talkkonnect) cmdPlayback() {
 	log.Printf("debug: F11 pressed Start/Stop Stream Stream into Current Channel Requested \n")
 	log.Println("info: Stream into Current Channel")

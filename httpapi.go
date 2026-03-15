@@ -80,6 +80,7 @@ func (b *Talkkonnect) httpAPI(w http.ResponseWriter, r *http.Request) {
 		"voicetargetset":     b.cmdSendVoiceTargets,
 		"listeningstart":     b.cmdListeningStart,
 		"listeningstop":      b.cmdListeningStop,
+		"playeventsound":     b.cmdPlayEventSound,
 		"listapi":            listAPI}
 
 	APICommands, ok := r.URL.Query()["command"]
@@ -99,6 +100,7 @@ func (b *Talkkonnect) httpAPI(w http.ResponseWriter, r *http.Request) {
 	var APIPreDelay int
 	var APIPostDelay int
 	var APILanguage string
+	var APIEventName string
 	var err error
 
 	APICommand := strings.ToLower(APICommands[0])
@@ -222,6 +224,10 @@ func (b *Talkkonnect) httpAPI(w http.ResponseWriter, r *http.Request) {
 			APILanguage = values[0]
 		}
 
+		if strings.ToLower(key) == "event" {
+			APIEventName = values[0]
+		}
+
 	}
 
 	for _, apicommand := range Config.Global.Software.RemoteControl.HTTP.Command {
@@ -264,6 +270,13 @@ func (b *Talkkonnect) httpAPI(w http.ResponseWriter, r *http.Request) {
 							log.Println("error: Wrong Parameters to Call Function")
 						} else {
 							fmt.Fprintf(w, "200 OK: http command %v id=%v OK \n", APICommand, APIID)
+						}
+					case "playeventsound":
+						_, err := b.Call(funcs, "playeventsound", APIEventName)
+						if err != nil {
+							log.Println("error: Wrong Parameters to Call Function")
+						} else {
+							fmt.Fprintf(w, "200 OK: http command %v event=%v OK \n", APICommand, APIEventName)
 						}
 					}
 				}
