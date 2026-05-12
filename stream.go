@@ -218,6 +218,7 @@ func (s *Stream) OnAudioStream(e *gumble.AudioStreamEvent) {
 		playPacket := func(samples int, packet *gumble.AudioPacket) (ok bool) {
 			defer func() {
 				if r := recover(); r != nil {
+					log.Printf("error: playPacket OpenAL panic: %v", r)
 					ok = false
 				}
 			}()
@@ -235,6 +236,9 @@ func (s *Stream) OnAudioStream(e *gumble.AudioStreamEvent) {
 			source.QueueBuffer(buffer)
 			if source.State() != openal.Playing {
 				source.Play()
+				if source.State() != openal.Playing {
+					log.Printf("warn: OpenAL source refused to play (state=%v); may indicate ALSA device conflict", source.State())
+				}
 			}
 			return true
 		}
@@ -272,33 +276,41 @@ func (s *Stream) OnAudioStream(e *gumble.AudioStreamEvent) {
 				continue
 			}
 			if !playPacket(samples, packet) {
-				log.Println("error: Audio playback failed; switching to drain-only mode")
-				for p := range e.C {
-					if e.User != nil && e.User.Channel != nil && isActiveListeningChannel(e.User.Channel.ID) {
-						markListeningAudioObserved()
-						if !listeningRxLogged {
-							log.Printf("debug: Listening RX observed (fallback drain) -> user=%q channel=%q id=%d\n", e.User.Name, e.User.Channel.Name, e.User.Channel.ID)
-							listeningRxLogged = true
-						}
-					}
-					TalkedTicker.Reset(Config.Global.Hardware.VoiceActivityTimermsecs * time.Millisecond)
-					if Config.Global.Software.IgnoreUser.IgnoreUserEnabled {
-						if len(Config.Global.Software.IgnoreUser.IgnoreUserRegex) > 0 {
-							if checkRegex(Config.Global.Software.IgnoreUser.IgnoreUserRegex, e.User.Name) {
-								continue
+				log.Println("warn: Audio playback failed; attempting source recovery")
+				source.Delete()
+				emptyBufs.Delete()
+				source = openal.NewSource()
+				emptyBufs = openal.NewBuffers(24)
+				if !playPacket(samples, packet) {
+					log.Println("error: Audio playback failed after source recovery; switching to drain-only mode")
+					for p := range e.C {
+						if e.User != nil && e.User.Channel != nil && isActiveListeningChannel(e.User.Channel.ID) {
+							markListeningAudioObserved()
+							if !listeningRxLogged {
+								log.Printf("debug: Listening RX observed (fallback drain) -> user=%q channel=%q id=%d\n", e.User.Name, e.User.Channel.Name, e.User.Channel.ID)
+								listeningRxLogged = true
 							}
 						}
-					}
-					if !talkingSent {
-						select {
-						case Talking <- talkingStruct{true, e.User.Name, e.User.Channel.Name}:
-						default:
+						TalkedTicker.Reset(Config.Global.Hardware.VoiceActivityTimermsecs * time.Millisecond)
+						if Config.Global.Software.IgnoreUser.IgnoreUserEnabled {
+							if len(Config.Global.Software.IgnoreUser.IgnoreUserRegex) > 0 {
+								if checkRegex(Config.Global.Software.IgnoreUser.IgnoreUserRegex, e.User.Name) {
+									continue
+								}
+							}
 						}
-						talkingSent = true
+						if !talkingSent {
+							select {
+							case Talking <- talkingStruct{true, e.User.Name, e.User.Channel.Name}:
+							default:
+							}
+							talkingSent = true
+						}
+						_ = p
 					}
-					_ = p
+					return
 				}
-				return
+				log.Println("info: Audio source recovery succeeded")
 			}
 		}
 		reclaim()
@@ -410,7 +422,7 @@ func (b *Talkkonnect) OpenStream() {
 }
 
 func (b *Talkkonnect) ResetStream() {
-	b.Stream.contextSink.Destroy()
+	b.Destroy()
 	time.Sleep(50 * time.Millisecond)
 	b.OpenStream()
 }

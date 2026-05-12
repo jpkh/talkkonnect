@@ -509,6 +509,13 @@ func (b *Talkkonnect) cmdSendVoiceTargets(targetID uint32) {
 		return
 	}
 
+	// Mumble protocol: VoiceTarget IDs must be in range [1, 30].
+	// ID 0 = default/no-whisper, ID 31 = server loopback (reserved), IDs > 31 are invalid.
+	if targetID > 30 {
+		log.Printf("error: cmdSendVoiceTargets: VT ID %d is out of valid range [1-30] (31 = loopback, >31 = invalid in Mumble protocol)\n", targetID)
+		return
+	}
+
 	// Build ONE voice target with ALL users/channels, then send it ONCE.
 	vtarget := &gumble.VoiceTarget{ID: targetID}
 	added := false
@@ -679,7 +686,7 @@ func (b *Talkkonnect) VoiceTargetUserSet(TargetID uint32, TargetUser string) {
 	}
 
 	vtUser := b.Client.Users.Find(TargetUser)
-	if (vtUser != nil) && (TargetID <= 31) {
+	if (vtUser != nil) && (TargetID >= 1) && (TargetID <= 30) {
 		vtarget := &gumble.VoiceTarget{}
 		vtarget.ID = TargetID
 		vtarget.AddUser(vtUser)
