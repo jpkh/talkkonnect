@@ -35,6 +35,7 @@ import (
 	"log"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/talkkonnect/go-openal/openal"
@@ -48,7 +49,8 @@ var (
 	now          = time.Now()
 	TotalStreams int
 	NeedToKill   int
-	streamTrackerMu sync.Mutex
+	streamTrackerMu       sync.Mutex
+	streamResetInProgress int32
 )
 
 // MumbleDuplex - listenera and outgoing
@@ -62,8 +64,9 @@ type Stream struct {
 	sourceFrameSize int
 	sourceStop      chan bool
 
-	deviceSink  *openal.Device
-	contextSink *openal.Context
+	deviceSink   *openal.Device
+	contextSink  *openal.Context
+	onStreamDead func()
 }
 
 func (b *Talkkonnect) New(client *gumble.Client) (*Stream, error) {
@@ -242,6 +245,7 @@ func (s *Stream) OnAudioStream(e *gumble.AudioStreamEvent) {
 			}
 			return true
 		}
+		bufPoolStallCount := 0
 		for packet := range e.C {
 			if e.User != nil && e.User.Channel != nil && isActiveListeningChannel(e.User.Channel.ID) {
 				markListeningAudioObserved()
@@ -311,6 +315,18 @@ func (s *Stream) OnAudioStream(e *gumble.AudioStreamEvent) {
 					return
 				}
 				log.Println("info: Audio source recovery succeeded")
+			}
+			if len(emptyBufs) == 0 {
+				bufPoolStallCount++
+				if bufPoolStallCount >= 20 {
+					log.Printf("error: OpenAL buffer pool stalled for %d consecutive packets; ALSA device likely hung; triggering stream reset", bufPoolStallCount)
+					if s.onStreamDead != nil {
+						s.onStreamDead()
+					}
+					return
+				}
+			} else {
+				bufPoolStallCount = 0
 			}
 		}
 		reclaim()
@@ -418,6 +434,16 @@ func (b *Talkkonnect) OpenStream() {
 		FatalCleanUp("Stream Open Error " + err.Error())
 	} else {
 		b.Stream = stream
+		b.Stream.onStreamDead = func() {
+			if atomic.CompareAndSwapInt32(&streamResetInProgress, 0, 1) {
+				go func() {
+					defer atomic.StoreInt32(&streamResetInProgress, 0)
+					log.Println("warn: ALSA hang detected; executing full stream reset")
+					time.Sleep(200 * time.Millisecond)
+					b.ResetStream()
+				}()
+			}
+		}
 	}
 }
 
