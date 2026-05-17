@@ -63,6 +63,7 @@ type Stream struct {
 	deviceSource    *openal.CaptureDevice
 	sourceFrameSize int
 	sourceStop      chan bool
+	sourceDone      chan struct{}
 
 	deviceSink   *openal.Device
 	contextSink  *openal.Context
@@ -89,6 +90,18 @@ func (b *Talkkonnect) New(client *gumble.Client) (*Stream, error) {
 
 func (b *Talkkonnect) Destroy() {
 	b.Stream.link.Detach()
+	if b.Stream.sourceStop != nil {
+		close(b.Stream.sourceStop)
+		b.Stream.sourceStop = nil
+	}
+	if b.Stream.sourceDone != nil {
+		select {
+		case <-b.Stream.sourceDone:
+		case <-time.After(500 * time.Millisecond):
+			log.Println("warn: sourceRoutine did not exit within 500ms during stream destroy")
+		}
+		b.Stream.sourceDone = nil
+	}
 	if b.Stream.deviceSource != nil {
 		b.Stream.deviceSource.CaptureStop()
 		b.Stream.deviceSource.CaptureCloseDevice()
@@ -113,6 +126,7 @@ func (b *Talkkonnect) StartSource() error {
 	}
 	b.Stream.deviceSource.CaptureStart()
 	b.Stream.sourceStop = make(chan bool)
+	b.Stream.sourceDone = make(chan struct{})
 	go b.sourceRoutine()
 	return nil
 }
@@ -349,6 +363,10 @@ func (b *Talkkonnect) sourceRoutine() {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	stop := b.Stream.sourceStop
+	doneCh := b.Stream.sourceDone
+	if doneCh != nil {
+		defer close(doneCh)
+	}
 
 	outgoing := b.Stream.client.AudioOutgoing()
 	defer close(outgoing)
@@ -359,6 +377,9 @@ func (b *Talkkonnect) sourceRoutine() {
 			return
 		case <-ticker.C:
 			//this is for encoding (transmitting)
+			if b.Stream.deviceSource == nil {
+				return
+			}
 			buff := b.Stream.deviceSource.CaptureSamples(uint32(frameSize))
 			if len(buff) != frameSize*2 {
 				continue
