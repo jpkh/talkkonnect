@@ -241,6 +241,18 @@ func Init(file string, ServerIndex string) {
 	exitStatus := 0
 
 	<-sigs
+	log.Println("info: shutdown signal received; closing audio devices before exit")
+	destroyDone := make(chan struct{}, 1)
+	go func() {
+		b.Destroy()
+		close(destroyDone)
+	}()
+	select {
+	case <-destroyDone:
+		log.Println("info: audio devices closed cleanly")
+	case <-time.After(3 * time.Second):
+		log.Println("warn: audio device close timed out (3s); ALSA may be hung; proceeding with exit")
+	}
 	CleanUp(false)
 	os.Exit(exitStatus)
 }

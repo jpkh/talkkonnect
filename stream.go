@@ -33,6 +33,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"log"
+	"os"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -469,7 +470,20 @@ func (b *Talkkonnect) OpenStream() {
 }
 
 func (b *Talkkonnect) ResetStream() {
-	b.Destroy()
+	log.Println("info: ResetStream: closing audio devices")
+	destroyDone := make(chan struct{}, 1)
+	go func() {
+		b.Destroy()
+		close(destroyDone)
+	}()
+	select {
+	case <-destroyDone:
+		log.Println("info: ResetStream: audio devices closed cleanly; reopening")
+	case <-time.After(3 * time.Second):
+		log.Println("error: ResetStream: audio device close timed out (3s); ALSA kernel deadlock confirmed; exiting for watchdk restart")
+		os.Exit(1)
+		return
+	}
 	time.Sleep(50 * time.Millisecond)
 	b.OpenStream()
 }
