@@ -112,10 +112,15 @@ func (b *Talkkonnect) uptimeHealthCompact() string {
 		conn = 1
 	}
 	vt := b.currentVoiceTargetID()
-	return fmt.Sprintf("up=%s conn=%d vt=%d r=%s m=%s p=%s/%s",
+	tx := 0
+	if b.IsTransmitting {
+		tx = 1
+	}
+	return fmt.Sprintf("up=%s conn=%d vt=%d tx=%d r=%s m=%s p=%s/%s",
 		up,
 		conn,
 		vt,
+		tx,
 		secOrNA(ageSeconds(atomic.LoadInt64(&lastRemoteCommandUnixNs))),
 		secOrNA(ageSeconds(atomic.LoadInt64(&lastMumbleEventUnixNs))),
 		pingStateShort(),
