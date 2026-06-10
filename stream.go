@@ -197,6 +197,7 @@ func (s *Stream) OnAudioStream(e *gumble.AudioStreamEvent) {
 		if s.contextSink == nil || s.deviceSink == nil {
 			log.Println("error: Audio output device/context not available; draining incoming audio stream")
 			for packet := range e.C {
+				markAudioPacketReceived()
 				if e.User != nil && e.User.Channel != nil && isActiveListeningChannel(e.User.Channel.ID) {
 					markListeningAudioObserved()
 					if !listeningRxLogged {
@@ -262,6 +263,7 @@ func (s *Stream) OnAudioStream(e *gumble.AudioStreamEvent) {
 		}
 		bufPoolStallCount := 0
 		for packet := range e.C {
+			markAudioPacketReceived()
 			if e.User != nil && e.User.Channel != nil && isActiveListeningChannel(e.User.Channel.ID) {
 				markListeningAudioObserved()
 				if !listeningRxLogged {
@@ -303,6 +305,7 @@ func (s *Stream) OnAudioStream(e *gumble.AudioStreamEvent) {
 				if !playPacket(samples, packet) {
 					log.Println("error: Audio playback failed after source recovery; switching to drain-only mode")
 					for p := range e.C {
+						markAudioPacketReceived()
 						if e.User != nil && e.User.Channel != nil && isActiveListeningChannel(e.User.Channel.ID) {
 							markListeningAudioObserved()
 							if !listeningRxLogged {

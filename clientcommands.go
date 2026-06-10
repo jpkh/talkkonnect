@@ -90,6 +90,21 @@ func lastListeningAudioObservedAt() time.Time {
 	return time.Unix(0, ts)
 }
 
+// audioRxPacketCount is a cumulative counter of incoming Mumble audio packets
+// received from remote users (summed across all active streams). It increments
+// for every packet handled in OnAudioStream regardless of playback path, so a
+// stalled counter while a remote unit is transmitting indicates the RX audio
+// path has died. Exposed via showuptime (rx=) so VGM can poll the delta.
+var audioRxPacketCount int64
+
+func markAudioPacketReceived() {
+	atomic.AddInt64(&audioRxPacketCount, 1)
+}
+
+func audioRxPacketsTotal() int64 {
+	return atomic.LoadInt64(&audioRxPacketCount)
+}
+
 func FatalCleanUp(message string) {
 	log.Println("alert: " + message)
 	log.Println("alert: Talkkonnect Terminated Abnormally with the Error(s) As Described Above, Ignore any GPIO errors if you are not using Single Board Computer.")

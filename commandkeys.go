@@ -465,6 +465,7 @@ func (b *Talkkonnect) cmdPlayEventSound(eventName string) {
 	if s, err := strconv.ParseFloat(eventSound.Volume, 32); err == nil {
 		v = int(s)
 	}
+	log.Printf("alert: playeventsound event=%q PLAYING file=%q volume=%d blocking=%v\n", eventName, eventSound.FileName, v, eventSound.Blocking)
 	go localMediaPlayer(eventSound.FileName, v, eventSound.Blocking, 0, 1)
 }
 
