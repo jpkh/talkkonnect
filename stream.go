@@ -174,10 +174,17 @@ func (s *Stream) OnAudioStream(e *gumble.AudioStreamEvent) {
 	streamTrackerMu.Unlock()
 	goStreamStats()
 
+	rxStreamChannel := ""
+	if e.User.Channel != nil {
+		rxStreamChannel = e.User.Channel.Name
+	}
+	log.Printf("info: RX stream START user=%q channel=%q activeStreams=%d\n", e.User.Name, rxStreamChannel, TotalStreams)
+
 	go func() {
 		talkingSent := false
 		listeningRxLogged := false
 		defer func() {
+			log.Printf("info: RX stream END user=%q channel=%q\n", e.User.Name, rxStreamChannel)
 			if talkingSent {
 				select {
 				case Talking <- talkingStruct{false, e.User.Name, e.User.Channel.Name}:
