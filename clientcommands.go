@@ -121,6 +121,25 @@ func audioPlayedPacketsTotal() int64 {
 	return atomic.LoadInt64(&audioPlayedPacketCount)
 }
 
+// audioDrainStreamCount tracks how many receive streams are currently in
+// drain-only mode (packets read off the wire but no audio device available to
+// play them). Exposed via showuptime (drn=) so VGM can see when audio is being
+// silently discarded even though rx= is still advancing. >0 means at least one
+// active stream is producing no sound.
+var audioDrainStreamCount int32
+
+func enterDrainMode() {
+	atomic.AddInt32(&audioDrainStreamCount, 1)
+}
+
+func exitDrainMode() {
+	atomic.AddInt32(&audioDrainStreamCount, -1)
+}
+
+func drainStreamsActive() int32 {
+	return atomic.LoadInt32(&audioDrainStreamCount)
+}
+
 func FatalCleanUp(message string) {
 	log.Println("alert: " + message)
 	log.Println("alert: Talkkonnect Terminated Abnormally with the Error(s) As Described Above, Ignore any GPIO errors if you are not using Single Board Computer.")

@@ -203,6 +203,8 @@ func (s *Stream) OnAudioStream(e *gumble.AudioStreamEvent) {
 
 		if s.contextSink == nil || s.deviceSink == nil {
 			log.Println("error: Audio output device/context not available; draining incoming audio stream")
+			enterDrainMode()
+			defer exitDrainMode()
 			for packet := range e.C {
 				markAudioPacketReceived()
 				if e.User != nil && e.User.Channel != nil && isActiveListeningChannel(e.User.Channel.ID) {
@@ -311,32 +313,9 @@ func (s *Stream) OnAudioStream(e *gumble.AudioStreamEvent) {
 				source = openal.NewSource()
 				emptyBufs = openal.NewBuffers(24)
 				if !playPacket(samples, packet) {
-					log.Println("error: Audio playback failed after source recovery; switching to drain-only mode")
-					for p := range e.C {
-						markAudioPacketReceived()
-						if e.User != nil && e.User.Channel != nil && isActiveListeningChannel(e.User.Channel.ID) {
-							markListeningAudioObserved()
-							if !listeningRxLogged {
-								log.Printf("debug: Listening RX observed (fallback drain) -> user=%q channel=%q id=%d\n", e.User.Name, e.User.Channel.Name, e.User.Channel.ID)
-								listeningRxLogged = true
-							}
-						}
-						TalkedTicker.Reset(Config.Global.Hardware.VoiceActivityTimermsecs * time.Millisecond)
-						if Config.Global.Software.IgnoreUser.IgnoreUserEnabled {
-							if len(Config.Global.Software.IgnoreUser.IgnoreUserRegex) > 0 {
-								if checkRegex(Config.Global.Software.IgnoreUser.IgnoreUserRegex, e.User.Name) {
-									continue
-								}
-							}
-						}
-						if !talkingSent {
-							select {
-							case Talking <- talkingStruct{true, e.User.Name, e.User.Channel.Name}:
-							default:
-							}
-							talkingSent = true
-						}
-						_ = p
+					log.Println("error: Audio playback failed after source recovery; OpenAL output is dead, triggering stream reset")
+					if s.onStreamDead != nil {
+						s.onStreamDead()
 					}
 					return
 				}
