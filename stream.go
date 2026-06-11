@@ -260,6 +260,7 @@ func (s *Stream) OnAudioStream(e *gumble.AudioStreamEvent) {
 			emptyBufs = emptyBufs[:last]
 			buffer.SetData(openal.FormatMono16, raw[:samples*2], gumble.AudioSampleRate)
 			source.QueueBuffer(buffer)
+			markAudioPacketPlayed()
 			if source.State() != openal.Playing {
 				source.Play()
 				if source.State() != openal.Playing {

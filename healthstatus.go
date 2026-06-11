@@ -116,12 +116,13 @@ func (b *Talkkonnect) uptimeHealthCompact() string {
 	if b.IsTransmitting {
 		tx = 1
 	}
-	return fmt.Sprintf("up=%s conn=%d vt=%d tx=%d rx=%d r=%s m=%s p=%s/%s",
+	return fmt.Sprintf("up=%s conn=%d vt=%d tx=%d rx=%d px=%d r=%s m=%s p=%s/%s",
 		up,
 		conn,
 		vt,
 		tx,
 		audioRxPacketsTotal(),
+		audioPlayedPacketsTotal(),
 		secOrNA(ageSeconds(atomic.LoadInt64(&lastRemoteCommandUnixNs))),
 		secOrNA(ageSeconds(atomic.LoadInt64(&lastMumbleEventUnixNs))),
 		pingStateShort(),

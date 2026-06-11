@@ -105,6 +105,22 @@ func audioRxPacketsTotal() int64 {
 	return atomic.LoadInt64(&audioRxPacketCount)
 }
 
+// audioPlayedPacketCount counts incoming Mumble audio packets that were
+// actually queued into the OpenAL playback device (not merely received and
+// drained). "rx=" advancing while "px=" stays frozen means packets are
+// arriving but no audio is being played -- i.e. the stream has fallen into
+// drain-only mode and the operator hears silence even though RX looks healthy.
+// Exposed via showuptime (px=) so VGM can detect this silent-death case.
+var audioPlayedPacketCount int64
+
+func markAudioPacketPlayed() {
+	atomic.AddInt64(&audioPlayedPacketCount, 1)
+}
+
+func audioPlayedPacketsTotal() int64 {
+	return atomic.LoadInt64(&audioPlayedPacketCount)
+}
+
 func FatalCleanUp(message string) {
 	log.Println("alert: " + message)
 	log.Println("alert: Talkkonnect Terminated Abnormally with the Error(s) As Described Above, Ignore any GPIO errors if you are not using Single Board Computer.")
