@@ -94,6 +94,8 @@ func localMediaPlayer(fileNameWithPath string, playbackvolume int, blocking bool
 		out, err := cmd.CombinedOutput()
 		if err != nil {
 			log.Printf("error: localMediaPlayer ffplay failed: %v — output: %s\n", err, string(out))
+		} else {
+			log.Printf("info: localMediaPlayer ffplay sent file to speakers OK: %q\n", fileNameWithPath)
 		}
 		if blocking {
 			WaitForFFPlay <- struct{}{} // signal that the routine has completed
